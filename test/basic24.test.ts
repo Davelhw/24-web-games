@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateBasic24Formula } from '../src/basic24.js';
+import { explainBasic24Formula, validateBasic24Formula } from '../src/basic24.js';
 
 describe('validateBasic24Formula', () => {
   it('accepts a valid formula that equals 24', () => {
@@ -177,5 +177,47 @@ describe('validateBasic24Formula', () => {
       usedDigits: [],
       error: 'Formula is required.',
     });
+  });
+});
+
+it('returns educational evaluation steps for a valid formula', () => {
+  const result = explainBasic24Formula({
+    digits: [2, 4, 6, 8],
+    formula: '8*6/(4/2)',
+  });
+
+  expect(result).toEqual({
+    ok: true,
+    value: 24,
+    usedDigits: [8, 6, 4, 2],
+    steps: [
+      {
+        expression: '8 * 6 = 48',
+        value: 48,
+      },
+      {
+        expression: '4 / 2 = 2',
+        value: 2,
+      },
+      {
+        expression: '48 / 2 = 24',
+        value: 24,
+      },
+    ],
+    error: null,
+  });
+});
+
+it('keeps validation result shape unchanged', () => {
+  const result = validateBasic24Formula({
+    digits: [2, 4, 6, 8],
+    formula: '8*6/(4/2)',
+  });
+
+  expect(result).toEqual({
+    ok: true,
+    value: 24,
+    usedDigits: [8, 6, 4, 2],
+    error: null,
   });
 });

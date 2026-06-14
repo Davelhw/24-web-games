@@ -17,6 +17,40 @@ export type Basic24ValidationResult =
       error: string;
     };
 
+export type Basic24EvaluationStep = {
+  expression: string;
+  value: number;
+};
+
+export type Basic24ExplanationResult =
+  | {
+      ok: true;
+      value: number;
+      usedDigits: number[];
+      steps: Basic24EvaluationStep[];
+      error: null;
+    }
+  | {
+      ok: false;
+      value: null;
+      usedDigits: number[];
+      steps: Basic24EvaluationStep[];
+      error: string;
+    };
+
+type FormulaParseResult =
+  | {
+      ok: true;
+      value: number;
+      display: string;
+      steps: Basic24EvaluationStep[];
+    }
+  | {
+      ok: false;
+      steps: Basic24EvaluationStep[];
+      error: string;
+    };
+
 type Token =
   | {
       type: 'number';
@@ -38,29 +72,49 @@ type Token =
 const EPSILON = 1e-10;
 
 export function validateBasic24Formula(input: Basic24ValidationInput): Basic24ValidationResult {
+  const result = explainBasic24Formula(input);
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      value: null,
+      usedDigits: result.usedDigits,
+      error: result.error,
+    };
+  }
+
+  return {
+    ok: true,
+    value: result.value,
+    usedDigits: result.usedDigits,
+    error: null,
+  };
+}
+
+export function explainBasic24Formula(input: Basic24ValidationInput): Basic24ExplanationResult {
   const digitValidationError = validateDigits(input.digits);
 
   if (digitValidationError !== null) {
-    return fail(digitValidationError);
+    return failWithSteps(digitValidationError);
   }
 
   const tokenResult = tokenize(input.formula);
 
   if (!tokenResult.ok) {
-    return fail(tokenResult.error, tokenResult.usedDigits);
+    return failWithSteps(tokenResult.error, tokenResult.usedDigits);
   }
 
   const usedDigitValidationError = validateUsedDigits(input.digits, tokenResult.usedDigits);
 
   if (usedDigitValidationError !== null) {
-    return fail(usedDigitValidationError, tokenResult.usedDigits);
+    return failWithSteps(usedDigitValidationError, tokenResult.usedDigits);
   }
 
   const parser = new FormulaParser(tokenResult.tokens);
   const parseResult = parser.parse();
 
   if (!parseResult.ok) {
-    return fail(parseResult.error, tokenResult.usedDigits);
+    return failWithSteps(parseResult.error, tokenResult.usedDigits, parseResult.steps);
   }
 
   if (!isNearlyEqual(parseResult.value, 24)) {
@@ -68,6 +122,7 @@ export function validateBasic24Formula(input: Basic24ValidationInput): Basic24Va
       ok: false,
       value: null,
       usedDigits: tokenResult.usedDigits,
+      steps: parseResult.steps,
       error: `Formula equals ${formatNumber(parseResult.value)}, not 24.`,
     };
   }
@@ -76,6 +131,7 @@ export function validateBasic24Formula(input: Basic24ValidationInput): Basic24Va
     ok: true,
     value: 24,
     usedDigits: tokenResult.usedDigits,
+    steps: parseResult.steps,
     error: null,
   };
 }
@@ -222,15 +278,7 @@ class FormulaParser {
 
   public constructor(private readonly tokens: readonly Token[]) {}
 
-  public parse():
-    | {
-        ok: true;
-        value: number;
-      }
-    | {
-        ok: false;
-        error: string;
-      } {
+  public parse(): FormulaParseResult {
     const result = this.parseExpression();
 
     if (!result.ok) {
@@ -240,6 +288,7 @@ class FormulaParser {
     if (!this.isEnd()) {
       return {
         ok: false,
+        steps: result.steps,
         error: 'Invalid formula syntax.',
       };
     }
@@ -247,15 +296,7 @@ class FormulaParser {
     return result;
   }
 
-  private parseExpression():
-    | {
-        ok: true;
-        value: number;
-      }
-    | {
-        ok: false;
-        error: string;
-      } {
+  private parseExpression(): FormulaParseResult {
     let left = this.parseTerm();
 
     if (!left.ok) {
@@ -268,6 +309,7 @@ class FormulaParser {
       if (operator?.type !== 'operator') {
         return {
           ok: false,
+          steps: left.steps,
           error: 'Invalid formula syntax.',
         };
       }
@@ -275,34 +317,29 @@ class FormulaParser {
       const right = this.parseTerm();
 
       if (!right.ok) {
-        return right;
+        return {
+          ...right,
+          steps: [...left.steps, ...right.steps],
+        };
       }
 
-      if (operator.value === '+') {
-        left = {
-          ok: true,
-          value: left.value + right.value,
-        };
-      } else {
-        left = {
-          ok: true,
-          value: left.value - right.value,
-        };
-      }
+      const value: number =
+        operator.value === '+' ? left.value + right.value : left.value - right.value;
+
+      const step = createEvaluationStep(left.display, operator.value, right.display, value);
+
+      left = {
+        ok: true,
+        value,
+        display: formatNumber(value),
+        steps: [...left.steps, ...right.steps, step],
+      };
     }
 
     return left;
   }
 
-  private parseTerm():
-    | {
-        ok: true;
-        value: number;
-      }
-    | {
-        ok: false;
-        error: string;
-      } {
+  private parseTerm(): FormulaParseResult {
     let left = this.parseFactor();
 
     if (!left.ok) {
@@ -315,6 +352,7 @@ class FormulaParser {
       if (operator?.type !== 'operator') {
         return {
           ok: false,
+          steps: left.steps,
           error: 'Invalid formula syntax.',
         };
       }
@@ -322,47 +360,58 @@ class FormulaParser {
       const right = this.parseFactor();
 
       if (!right.ok) {
-        return right;
+        return {
+          ...right,
+          steps: [...left.steps, ...right.steps],
+        };
       }
 
       if (operator.value === '*') {
-        left = {
-          ok: true,
-          value: left.value * right.value,
-        };
-      } else {
-        if (isNearlyEqual(right.value, 0)) {
-          return {
-            ok: false,
-            error: 'Division by zero is not allowed.',
-          };
-        }
+        const value: number = left.value * right.value;
+
+        const step = createEvaluationStep(left.display, operator.value, right.display, value);
 
         left = {
           ok: true,
-          value: left.value / right.value,
+          value,
+          display: formatNumber(value),
+          steps: [...left.steps, ...right.steps, step],
+        };
+
+        continue;
+      }
+
+      if (isNearlyEqual(right.value, 0)) {
+        return {
+          ok: false,
+          steps: [...left.steps, ...right.steps],
+          error: 'Division by zero is not allowed.',
         };
       }
+
+      const value: number = left.value / right.value;
+
+      const step = createEvaluationStep(left.display, operator.value, right.display, value);
+
+      left = {
+        ok: true,
+        value,
+        display: formatNumber(value),
+        steps: [...left.steps, ...right.steps, step],
+      };
     }
 
     return left;
   }
 
-  private parseFactor():
-    | {
-        ok: true;
-        value: number;
-      }
-    | {
-        ok: false;
-        error: string;
-      } {
+  private parseFactor(): FormulaParseResult {
     if (this.matchType('number')) {
       const token = this.previous();
 
       if (token?.type !== 'number') {
         return {
           ok: false,
+          steps: [],
           error: 'Invalid formula syntax.',
         };
       }
@@ -370,6 +419,8 @@ class FormulaParser {
       return {
         ok: true,
         value: token.value,
+        display: formatNumber(token.value),
+        steps: [],
       };
     }
 
@@ -383,15 +434,22 @@ class FormulaParser {
       if (!this.matchType('rightParen')) {
         return {
           ok: false,
+          steps: expression.steps,
           error: 'Missing closing bracket.',
         };
       }
 
-      return expression;
+      return {
+        ok: true,
+        value: expression.value,
+        display: formatNumber(expression.value),
+        steps: expression.steps,
+      };
     }
 
     return {
       ok: false,
+      steps: [],
       error: 'Invalid formula syntax.',
     };
   }
@@ -429,6 +487,32 @@ class FormulaParser {
   private isEnd(): boolean {
     return this.currentIndex >= this.tokens.length;
   }
+}
+
+function createEvaluationStep(
+  left: string,
+  operator: '+' | '-' | '*' | '/',
+  right: string,
+  value: number,
+): Basic24EvaluationStep {
+  return {
+    expression: `${left} ${operator} ${right} = ${formatNumber(value)}`,
+    value,
+  };
+}
+
+function failWithSteps(
+  error: string,
+  usedDigits: number[] = [],
+  steps: Basic24EvaluationStep[] = [],
+): Basic24ExplanationResult {
+  return {
+    ok: false,
+    value: null,
+    usedDigits,
+    steps,
+    error,
+  };
 }
 
 function isDigitChar(char: string): boolean {
