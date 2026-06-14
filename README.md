@@ -1,14 +1,3 @@
-Sure bud — keep it basic and clean first. No over-engineering.
-
-Create:
-
-```bash
-touch README.md .gitignore
-```
-
-## `README.md`
-
-````md
 # 24 Web Games
 
 A TypeScript project for building educational web-based number games.
@@ -43,6 +32,7 @@ const result = validateBasic24Formula({
 
 console.log(result);
 ```
+
 ````
 
 Expected result:
@@ -113,3 +103,4 @@ test/
 This project is currently focused on the pure TypeScript game engine first.
 
 UI and advanced educational formula explanation features will be added later.
+````
