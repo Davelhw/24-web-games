@@ -95,14 +95,18 @@ describe('validateBasic24Formula', () => {
     });
   });
 
-  it('accepts valid duplicate digit usage', () => {
+  it('accepts valid duplicate digit usage and normalizes floating result to 24', () => {
     const result = validateBasic24Formula({
       digits: [3, 3, 8, 8],
       formula: '8/(3-8/3)',
     });
 
-    expect(result.ok).toBe(true);
-    expect(result.usedDigits).toEqual([8, 3, 8, 3]);
+    expect(result).toEqual({
+      ok: true,
+      value: 24,
+      usedDigits: [8, 3, 8, 3],
+      error: null,
+    });
   });
 
   it('rejects invalid characters', () => {
