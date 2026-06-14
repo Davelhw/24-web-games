@@ -74,7 +74,7 @@ export function validateBasic24Formula(input: Basic24ValidationInput): Basic24Va
 
   return {
     ok: true,
-    value: parseResult.value,
+    value: 24,
     usedDigits: tokenResult.usedDigits,
     error: null,
   };
