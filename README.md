@@ -33,8 +33,6 @@ const result = validateBasic24Formula({
 console.log(result);
 ```
 
-````
-
 Expected result:
 
 ```ts
@@ -103,4 +101,3 @@ test/
 This project is currently focused on the pure TypeScript game engine first.
 
 UI and advanced educational formula explanation features will be added later.
-````
