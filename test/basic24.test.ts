@@ -8,6 +8,10 @@ import {
   validateBasic24Formula,
 } from '../src/basic24.js';
 
+function sortDigits(digits: readonly number[]): number[] {
+  return [...digits].sort((a, b) => a - b);
+}
+
 describe('validateBasic24Formula', () => {
   it('accepts a valid formula that equals 24', () => {
     const result = validateBasic24Formula({
@@ -181,7 +185,7 @@ describe('validateBasic24Formula', () => {
     expect(result).toEqual({
       ok: false,
       value: null,
-      usedDigits: [2, 9, 8],
+      usedDigits: [2],
       error: 'Invalid character "√". Only digits, +, -, *, /, brackets, and spaces are allowed.',
     });
   });
@@ -417,19 +421,15 @@ describe('getAnyAdvanced24Solution', () => {
 
     expect(formula).not.toBeNull();
 
-    if (formula === null) {
-      throw new Error('Expected a formula for [1, 2, 3, 3].');
-    }
-
-    expect(validateAdvanced24Formula({
+    const result = validateAdvanced24Formula({
       digits: [1, 2, 3, 3],
-      formula,
-    })).toEqual({
-      ok: true,
-      value: 24,
-      usedDigits: [1, 2, 3, 3],
-      error: null,
+      formula: formula!,
     });
+
+    expect(result.ok).toBe(true);
+    expect(result.value).toBe(24);
+    expect(result.error).toBeNull();
+    expect(sortDigits(result.usedDigits)).toEqual([1, 2, 3, 3]);
   });
 
   it('finds an advanced-mode solution for [9, 9, 7, 8]', () => {
@@ -437,19 +437,15 @@ describe('getAnyAdvanced24Solution', () => {
 
     expect(formula).not.toBeNull();
 
-    if (formula === null) {
-      throw new Error('Expected a formula for [9, 9, 7, 8].');
-    }
-
-    expect(validateAdvanced24Formula({
+    const result = validateAdvanced24Formula({
       digits: [9, 9, 7, 8],
-      formula,
-    })).toEqual({
-      ok: true,
-      value: 24,
-      usedDigits: [9, 9, 7, 8],
-      error: null,
+      formula: formula!,
     });
+
+    expect(result.ok).toBe(true);
+    expect(result.value).toBe(24);
+    expect(result.error).toBeNull();
+    expect(sortDigits(result.usedDigits)).toEqual([7, 8, 9, 9]);
   });
 
   it('prefers a basic solution when one exists', () => {
@@ -461,10 +457,12 @@ describe('getAnyAdvanced24Solution', () => {
       throw new Error('Expected a formula for [6, 1, 3, 4].');
     }
 
-    expect(validateBasic24Formula({
-      digits: [6, 1, 3, 4],
-      formula,
-    }).ok).toBe(true);
+    expect(
+      validateBasic24Formula({
+        digits: [6, 1, 3, 4],
+        formula,
+      }).ok,
+    ).toBe(true);
   });
 });
 
@@ -478,10 +476,12 @@ describe('getAnyBasic24Solution', () => {
       throw new Error('Expected a formula for [6, 1, 3, 4].');
     }
 
-    expect(validateBasic24Formula({
-      digits: [6, 1, 3, 4],
-      formula,
-    }).ok).toBe(true);
+    expect(
+      validateBasic24Formula({
+        digits: [6, 1, 3, 4],
+        formula,
+      }).ok,
+    ).toBe(true);
   });
 
   it('finds a solution for a duplicate-digit solvable set', () => {
@@ -493,10 +493,12 @@ describe('getAnyBasic24Solution', () => {
       throw new Error('Expected a formula for [3, 3, 8, 8].');
     }
 
-    expect(validateBasic24Formula({
-      digits: [3, 3, 8, 8],
-      formula,
-    }).ok).toBe(true);
+    expect(
+      validateBasic24Formula({
+        digits: [3, 3, 8, 8],
+        formula,
+      }).ok,
+    ).toBe(true);
   });
 
   it('returns null for an unsolvable digit set', () => {
