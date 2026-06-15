@@ -1,57 +1,20 @@
 # 24 Web Games
 
-A TypeScript project for building educational web-based number games.
+Current app: Basic 24 Game
 
-## Current Feature
+A simple educational arithmetic game built as a static TypeScript web app. The current demo lets players validate 24-game formulas against four digits and read step-by-step explanations from the engine.
 
-### Basic Mode 24 Game Validator
+## Purpose
 
-Validates whether a formula:
-
-- Uses exactly four given digits
-- Uses every digit exactly once
-- Correctly handles duplicate digits
-- Allows only:
-  - `+`
-  - `-`
-  - `*`
-  - `/`
-  - brackets `()`
-  - spaces
-- Evaluates to `24`
-
-Example:
-
-```ts
-import { validateBasic24Formula } from './src/basic24.js';
-
-const result = validateBasic24Formula({
-  digits: [2, 4, 6, 8],
-  formula: '8*6/(4/2)',
-});
-
-console.log(result);
-```
-
-Expected result:
-
-```ts
-{
-  ok: true,
-  value: 24,
-  usedDigits: [8, 6, 4, 2],
-  error: null
-}
-```
+This project is an educational arithmetic game for number sense and formula interpretation.
 
 ## Tech Stack
 
 - TypeScript
+- Vite
 - Vitest
-- tsx
-- Node.js
 
-## Setup
+## Local Setup
 
 ```bash
 npm install
@@ -59,10 +22,14 @@ npm install
 
 ## Development
 
-Run the development entry file:
-
 ```bash
 npm run dev
+```
+
+## Terminal Demo
+
+```bash
+npm run demo
 ```
 
 ## Type Check
@@ -73,31 +40,24 @@ npm run typecheck
 
 ## Test
 
-Run tests in watch mode:
-
-```bash
-npm test
-```
-
-Run tests once:
-
 ```bash
 npm run test:run
 ```
 
-## Project Structure
+## Build
 
-```txt
-src/
-  basic24.ts
-  index.ts
-
-test/
-  basic24.test.ts
+```bash
+npm run build
 ```
 
-## Notes
+Vite outputs the production site to `dist/`.
 
-This project is currently focused on the pure TypeScript game engine first.
+## Preview
 
-UI and advanced educational formula explanation features will be added later.
+```bash
+npm run preview
+```
+
+## Deployment Note
+
+This app is intended for static hosting. Deploy the contents of `dist/` and configure the custom domain `24game.davelhw.com` at your hosting provider.
