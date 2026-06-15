@@ -174,11 +174,6 @@ button.digit-box:disabled:hover {
     inset 0 0 0 999px rgba(80, 80, 80, 0.04);
 }
 
-.digit-box--used .digit-value {
-  color: #1f1a14;
-  text-decoration: none;
-}
-
 .formula-form {
   display: grid;
   gap: 12px;
