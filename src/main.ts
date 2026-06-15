@@ -364,7 +364,6 @@ function saveHistoryAttempt(result: ReturnType<typeof explainBasic24Formula>, fo
     ok: result.ok,
     value: result.ok ? result.value : null,
     error: result.ok ? null : result.error,
-    repeatCount: 1,
   });
 
   updateHistoryState();

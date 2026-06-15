@@ -18,7 +18,9 @@ const MAX_HISTORY_ITEMS = 20;
 
 let fallbackHistory: Basic24HistoryItem[] = [];
 
-export function getBasic24History(storage: Basic24HistoryStorage | null = getHistoryStorage()): Basic24HistoryItem[] {
+export function getBasic24History(
+  storage: Basic24HistoryStorage | null = getHistoryStorage(),
+): Basic24HistoryItem[] {
   const rawHistory = readHistory(storage);
 
   if (storage === null) {
@@ -29,7 +31,7 @@ export function getBasic24History(storage: Basic24HistoryStorage | null = getHis
 }
 
 export function addBasic24HistoryItem(
-  item: Omit<Basic24HistoryItem, 'id' | 'createdAt'>,
+  item: Omit<Basic24HistoryItem, 'id' | 'createdAt' | 'repeatCount'>,
   storage: Basic24HistoryStorage | null = getHistoryStorage(),
 ): Basic24HistoryItem[] {
   const nextItem: Basic24HistoryItem = {
@@ -40,17 +42,21 @@ export function addBasic24HistoryItem(
   };
 
   const currentHistory = storage === null ? [...fallbackHistory] : readHistory(storage);
-  const nextHistory =
-    currentHistory.length > 0 && isSameHistoryAttempt(currentHistory[0] as Basic24HistoryItem, nextItem)
-      ? [
-          {
-            ...currentHistory[0],
-            repeatCount: currentHistory[0].repeatCount + 1,
-            createdAt: nextItem.createdAt,
-          },
-          ...currentHistory.slice(1),
-        ].slice(0, MAX_HISTORY_ITEMS)
-      : [nextItem, ...currentHistory].slice(0, MAX_HISTORY_ITEMS);
+  const firstHistoryItem = currentHistory[0];
+
+  let nextHistory: Basic24HistoryItem[];
+
+  if (firstHistoryItem !== undefined && isSameHistoryAttempt(firstHistoryItem, nextItem)) {
+    const repeatedItem: Basic24HistoryItem = {
+      ...firstHistoryItem,
+      repeatCount: firstHistoryItem.repeatCount + 1,
+      createdAt: nextItem.createdAt,
+    };
+
+    nextHistory = [repeatedItem, ...currentHistory.slice(1)].slice(0, MAX_HISTORY_ITEMS);
+  } else {
+    nextHistory = [nextItem, ...currentHistory].slice(0, MAX_HISTORY_ITEMS);
+  }
 
   if (storage === null) {
     fallbackHistory = nextHistory;
@@ -62,7 +68,9 @@ export function addBasic24HistoryItem(
   return nextHistory;
 }
 
-export function clearBasic24History(storage: Basic24HistoryStorage | null = getHistoryStorage()): void {
+export function clearBasic24History(
+  storage: Basic24HistoryStorage | null = getHistoryStorage(),
+): void {
   fallbackHistory = [];
 
   if (storage === null) {

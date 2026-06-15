@@ -43,7 +43,6 @@ describe('basic24 history storage', () => {
         ok: true,
         value: 24,
         error: null,
-        repeatCount: 1,
       },
       storage,
     );
@@ -55,7 +54,6 @@ describe('basic24 history storage', () => {
         ok: false,
         value: null,
         error: 'Formula equals 30, not 24.',
-        repeatCount: 1,
       },
       storage,
     );
@@ -75,7 +73,6 @@ describe('basic24 history storage', () => {
         ok: true,
         value: 24,
         error: null,
-        repeatCount: 1,
       },
       storage,
     );
@@ -87,7 +84,6 @@ describe('basic24 history storage', () => {
         ok: true,
         value: 24,
         error: null,
-        repeatCount: 1,
       },
       storage,
     );
@@ -107,7 +103,6 @@ describe('basic24 history storage', () => {
         ok: true,
         value: 24,
         error: null,
-        repeatCount: 1,
       },
       storage,
     );
@@ -119,7 +114,6 @@ describe('basic24 history storage', () => {
         ok: false,
         value: null,
         error: 'Formula must use every given digit exactly once.',
-        repeatCount: 1,
       },
       storage,
     );
@@ -139,7 +133,6 @@ describe('basic24 history storage', () => {
         ok: true,
         value: 24,
         error: null,
-        repeatCount: 1,
       },
       storage,
     );
@@ -151,7 +144,6 @@ describe('basic24 history storage', () => {
         ok: false,
         value: null,
         error: 'Formula equals 30, not 24.',
-        repeatCount: 1,
       },
       storage,
     );
@@ -171,7 +163,6 @@ describe('basic24 history storage', () => {
         ok: true,
         value: 24,
         error: null,
-        repeatCount: 1,
       },
       storage,
     );
@@ -183,7 +174,6 @@ describe('basic24 history storage', () => {
         ok: false,
         value: null,
         error: 'Formula equals 30, not 24.',
-        repeatCount: 1,
       },
       storage,
     );
@@ -195,7 +185,6 @@ describe('basic24 history storage', () => {
         ok: true,
         value: 24,
         error: null,
-        repeatCount: 1,
       },
       storage,
     );
@@ -220,7 +209,6 @@ describe('basic24 history storage', () => {
           ok: index % 2 === 0,
           value: index % 2 === 0 ? 24 : null,
           error: index % 2 === 0 ? null : 'Not quite',
-          repeatCount: 1,
         },
         storage,
       );
@@ -265,7 +253,6 @@ describe('basic24 history storage', () => {
         ok: true,
         value: 24,
         error: null,
-        repeatCount: 1,
       },
       storage,
     );
