@@ -42,7 +42,7 @@ app.innerHTML = `
         <li>Brackets are allowed.</li>
         <li>Target result is 24.</li>
         <li>After 3 failed attempts, you can reveal one solution.</li>
-        <li>Use New Challenge to get another solvable set.</li>
+        <li>Solve the current challenge to unlock New Challenge.</li>
       </ul>
     </section>
 
@@ -52,7 +52,7 @@ app.innerHTML = `
           <p class="panel-kicker">Challenge</p>
           <h2 id="challenge-title">Current digits</h2>
         </div>
-        <button class="ghost-button" type="button" data-new-challenge>New Challenge</button>
+        <button class="ghost-button" type="button" data-new-challenge disabled>New Challenge</button>
       </div>
 
       <div class="digit-grid" data-digits aria-label="Current challenge digits"></div>
@@ -302,6 +302,10 @@ function updateShowSolutionButton(): void {
   showSolutionButton.disabled = false;
 }
 
+function updateNewChallengeButton(): void {
+  newChallengeButton.disabled = !currentChallengeSolved;
+}
+
 function updateHistoryState(): void {
   renderHistory(historyItems);
 }
@@ -329,6 +333,7 @@ function revealSolutionForDigits(digits: ChallengeDigits, statusMessage: string)
     showSolutionReveal('No solution is available for this history item.');
     renderResult('idle', 'No solution is available for this history item.');
     renderSteps([]);
+    updateNewChallengeButton();
     return;
   }
 
@@ -342,10 +347,12 @@ function revealSolutionForDigits(digits: ChallengeDigits, statusMessage: string)
 
   if (explanation.ok) {
     renderResult('success', statusMessage);
+    updateNewChallengeButton();
     return;
   }
 
   renderResult('error', `Solution lookup failed. ${explanation.error}`);
+  updateNewChallengeButton();
 }
 
 function validateCurrentFormula(): void {
@@ -362,6 +369,7 @@ function validateCurrentFormula(): void {
     failedAttempts = 0;
     hideSolutionReveal();
     updateShowSolutionButton();
+    updateNewChallengeButton();
     renderResult('success', 'Correct! This makes 24.');
     saveHistoryAttempt(result, formula);
     return;
@@ -373,6 +381,7 @@ function validateCurrentFormula(): void {
   }
 
   updateShowSolutionButton();
+  updateNewChallengeButton();
   renderResult('error', `Not quite yet. ${result.error}`);
   saveHistoryAttempt(result, formula);
 }
@@ -382,6 +391,7 @@ function clearFormula(): void {
   failedAttempts = 0;
   currentChallengeSolved = false;
   updateShowSolutionButton();
+  updateNewChallengeButton();
   hideSolutionReveal();
   renderResult('idle', 'Enter a formula and validate it against the current digits.');
   renderSteps([]);
@@ -393,6 +403,7 @@ function setChallengeDigits(digits: ChallengeDigits): void {
   challengeDigits = digits;
   currentChallengeSolved = false;
   updateUsedDigitState();
+  updateNewChallengeButton();
 }
 
 function revealSolution(): void {
@@ -402,22 +413,6 @@ function revealSolution(): void {
 function startNewChallenge(): void {
   setChallengeDigits(createSolvableChallenge());
   clearFormula();
-}
-
-function handleNewChallengeClick(): void {
-  const formula = formulaInput.value.trim();
-
-  if (formula.length > 0 && !currentChallengeSolved) {
-    const shouldStartNewChallenge = window.confirm(
-      'Start a new challenge? Your current attempt is not solved yet.',
-    );
-
-    if (!shouldStartNewChallenge) {
-      return;
-    }
-  }
-
-  startNewChallenge();
 }
 
 function createSolvableChallenge(): ChallengeDigits {
@@ -438,7 +433,11 @@ form.addEventListener('submit', (event) => {
 });
 
 newChallengeButton.addEventListener('click', () => {
-  handleNewChallengeClick();
+  if (!currentChallengeSolved) {
+    return;
+  }
+
+  startNewChallenge();
 });
 
 clearButton.addEventListener('click', () => {
@@ -465,6 +464,11 @@ formulaInput.addEventListener('keydown', (event) => {
 });
 
 formulaInput.addEventListener('input', () => {
+  if (currentChallengeSolved) {
+    currentChallengeSolved = false;
+    updateNewChallengeButton();
+  }
+
   updateUsedDigitState();
 });
 
@@ -472,5 +476,6 @@ setChallengeDigits(createSolvableChallenge());
 renderResult('idle', 'Enter a formula and validate it against the current digits.');
 renderSteps([]);
 updateShowSolutionButton();
+updateNewChallengeButton();
 hideSolutionReveal();
 updateHistoryState();
