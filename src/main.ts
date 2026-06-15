@@ -35,6 +35,7 @@ app.innerHTML = `
         <li>Allowed operators: +, -, *, /</li>
         <li>Brackets are allowed.</li>
         <li>Target result is 24.</li>
+        <li>After 3 failed attempts, you can reveal one solution.</li>
       </ul>
     </section>
 
@@ -78,7 +79,7 @@ app.innerHTML = `
         <div class="button-row">
           <button class="primary-button" type="submit">Validate</button>
           <button class="ghost-button" type="button" data-clear>Clear</button>
-          <button class="ghost-button" type="button" data-show-solution hidden>Show Solution</button>
+          <button class="ghost-button" type="button" data-show-solution>Show Solution (3)</button>
         </div>
       </form>
     </section>
@@ -198,7 +199,16 @@ function showSolutionReveal(message: string): void {
 }
 
 function updateShowSolutionButton(): void {
-  showSolutionButton.hidden = failedAttempts < FAILED_ATTEMPTS_TO_SHOW_SOLUTION;
+  const remainingAttempts = Math.max(FAILED_ATTEMPTS_TO_SHOW_SOLUTION - failedAttempts, 0);
+
+  if (remainingAttempts > 0) {
+    showSolutionButton.textContent = `Show Solution (${remainingAttempts})`;
+    showSolutionButton.disabled = true;
+    return;
+  }
+
+  showSolutionButton.textContent = 'Show Solution';
+  showSolutionButton.disabled = false;
 }
 
 function validateCurrentFormula(): void {
@@ -211,15 +221,18 @@ function validateCurrentFormula(): void {
   renderSteps(result.steps);
 
   if (result.ok) {
+    failedAttempts = 0;
+    hideSolutionReveal();
+    updateShowSolutionButton();
     renderResult('success', 'Correct! This makes 24.');
     return;
   }
 
   if (formula.length > 0) {
     failedAttempts += 1;
-    updateShowSolutionButton();
   }
 
+  updateShowSolutionButton();
   renderResult('error', `Not quite yet. ${result.error}`);
 }
 

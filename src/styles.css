@@ -224,6 +224,12 @@ button:hover {
   transform: translateY(-1px);
 }
 
+button:disabled,
+button:disabled:hover {
+  cursor: not-allowed;
+  transform: none;
+}
+
 button:focus-visible {
   outline: 3px solid rgba(31, 78, 121, 0.28);
   outline-offset: 2px;
@@ -244,6 +250,13 @@ button:focus-visible {
 .ghost-button {
   color: var(--primary-strong);
   background: rgba(31, 78, 121, 0.08);
+}
+
+.ghost-button:disabled {
+  color: rgba(23, 58, 90, 0.6);
+  background: rgba(31, 78, 121, 0.05);
+  box-shadow: none;
+  opacity: 0.95;
 }
 
 .solution {
