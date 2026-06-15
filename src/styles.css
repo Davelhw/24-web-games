@@ -220,6 +220,15 @@ h2 {
   padding: 0 14px;
 }
 
+.keypad-button:disabled,
+.keypad-button:disabled:hover {
+  opacity: 0.58;
+  color: rgba(23, 58, 90, 0.7);
+  background: rgba(31, 78, 121, 0.04);
+  box-shadow: none;
+  border: 1px solid rgba(31, 78, 121, 0.08);
+}
+
 .hint {
   margin-top: -2px;
   color: var(--muted);

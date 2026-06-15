@@ -194,7 +194,9 @@ let challengeDigits: ChallengeDigits = [1, 2, 3, 4];
 let failedAttempts = 0;
 let historyItems: Basic24HistoryItem[] = getBasic24History();
 let currentChallengeSolved = false;
-let currentMode: Basic24Mode = 'basic';
+const KEYPAD_OPERATORS = ['+', '-', '*', '/', '(', ')', '^', '√'] as const;
+const BASIC_MODE_STORAGE_KEY = 'basic24.mode.v1';
+let currentMode: Basic24Mode = getSavedMode();
 
 function queryRequired<T extends Element>(root: ParentNode, selector: string): T {
   const element = root.querySelector<T>(selector);
@@ -217,6 +219,32 @@ function createRandomDigits(): ChallengeDigits {
 
 function randomDigit(): number {
   return Math.floor(Math.random() * 9) + 1;
+}
+
+function getSavedMode(): Basic24Mode {
+  try {
+    const value = globalThis.localStorage?.getItem(BASIC_MODE_STORAGE_KEY);
+
+    if (value === 'advanced' || value === 'basic') {
+      return value;
+    }
+  } catch {
+    return 'basic';
+  }
+
+  return 'basic';
+}
+
+function saveMode(mode: Basic24Mode): void {
+  try {
+    globalThis.localStorage?.setItem(BASIC_MODE_STORAGE_KEY, mode);
+  } catch {
+    return;
+  }
+}
+
+function isAdvancedOperator(symbol: string): boolean {
+  return symbol === '^' || symbol === '√';
 }
 
 function renderDigits(digits: ChallengeDigits, usedIndexes: Set<number>): void {
@@ -371,17 +399,33 @@ function renderInstructions(mode: Basic24Mode): void {
 function renderKeypad(mode: Basic24Mode): void {
   keypadElement.innerHTML = '';
 
-  const symbols = mode === 'advanced' ? ['+', '-', '*', '/', '(', ')', '^', '√'] : ['+', '-', '*', '/', '(', ')'];
-
-  for (const symbol of symbols) {
+  for (const symbol of KEYPAD_OPERATORS) {
     const button = document.createElement('button');
     button.className = 'ghost-button keypad-button';
     button.type = 'button';
     button.textContent = symbol;
     button.setAttribute('aria-label', `Insert ${symbol}`);
-    button.addEventListener('click', () => {
-      insertSymbolAtCursor(symbol);
-    });
+
+    if (symbol === '^') {
+      button.title = mode === 'advanced'
+        ? 'Power operator, available in Advanced Mode'
+        : 'Switch to Advanced Mode to use this operator.';
+    } else if (symbol === '√') {
+      button.title = mode === 'advanced'
+        ? 'Indexed root operator, available in Advanced Mode'
+        : 'Switch to Advanced Mode to use this operator.';
+    } else {
+      button.removeAttribute('title');
+    }
+
+    if (mode === 'basic' && isAdvancedOperator(symbol)) {
+      button.disabled = true;
+    } else {
+      button.addEventListener('click', () => {
+        insertSymbolAtCursor(symbol);
+      });
+    }
+
     keypadElement.appendChild(button);
   }
 }
@@ -456,6 +500,7 @@ function setMode(mode: Basic24Mode): void {
   }
 
   currentMode = mode;
+  saveMode(mode);
   currentChallengeSolved = false;
   failedAttempts = 0;
   hideSolutionReveal();
