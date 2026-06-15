@@ -1,63 +1,83 @@
 # 24 Web Games
 
-Current app: Basic 24 Game
+An educational 24 Game web app built with TypeScript. It validates formulas, explains evaluation steps, supports Basic and Advanced modes, and helps players practice arithmetic thinking.
 
-A simple educational arithmetic game built as a static TypeScript web app. The current demo lets players validate 24-game formulas against four digits and read step-by-step explanations from the engine.
+## Live Demo
 
-## Purpose
+- https://24game.davelhw.com
 
-This project is an educational arithmetic game for number sense and formula interpretation.
+## Repository
 
-## Tech Stack
+- https://github.com/Davelhw/24-web-games
 
-- TypeScript
-- Vite
-- Vitest
+## Features
 
-## Local Setup
+- Basic Mode: `+`, `-`, `*`, `/`, brackets, implicit multiplication
+- Advanced Mode: `^` power and indexed `√` root
+- Formula validation against four digits
+- Duplicate digit handling
+- Step-by-step evaluation explanation
+- Show Solution after 3 failed attempts
+- Current digits can be tapped/clicked as input
+- Operator keypad
+- Attempt history with `localStorage`
+- History solution modal
+- Mobile-friendly UI
+
+## Game Modes
+
+### Basic Mode
+
+- Use `+`, `-`, `*`, `/`
+- Brackets allowed
+- Implicit multiplication allowed, example: `2(3+6)`
+
+### Advanced Mode
+
+- Includes Basic Mode
+- `^` means power
+- indexed `√` means root
+- `√` does not default to square root
+- example: `2^3*1*3 = 24`
+- example: `(9-7)√9*8 = 24`
+
+## Local Development
 
 ```bash
 npm install
-```
-
-## Development
-
-```bash
 npm run dev
 ```
 
-## Terminal Demo
-
-```bash
-npm run demo
-```
-
-## Type Check
+## Quality Checks
 
 ```bash
 npm run typecheck
-```
-
-## Test
-
-```bash
 npm run test:run
-```
-
-## Build
-
-```bash
 npm run build
 ```
 
-Vite outputs the production site to `dist/`.
+## Deployment
 
-## Preview
+Vite builds the production site to `dist/`.
 
-```bash
-npm run preview
-```
+This repository is currently deployed at https://24game.davelhw.com.
 
-## Deployment Note
+## Contributing
 
-This app is intended for static hosting. Deploy the contents of `dist/` and configure the custom domain `24game.davelhw.com` at your hosting provider.
+Contributions are welcome.
+
+Engineers may clone, fork, open issues, or submit pull requests.
+
+Suggested contribution areas:
+
+- UI/UX improvements
+- solver improvements
+- more educational explanations
+- accessibility improvements
+- test coverage
+
+Keep changes simple and well-tested.
+
+## License
+
+MIT License.
