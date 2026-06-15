@@ -1,7 +1,9 @@
-import { explainBasic24Formula } from './basic24.js';
+import { explainBasic24Formula, getAnyBasic24Solution } from './basic24.js';
 import './styles.css';
 
 type ChallengeDigits = readonly [number, number, number, number];
+const RANDOM_CHALLENGE_MAX_ATTEMPTS = 200;
+const FALLBACK_CHALLENGE: ChallengeDigits = [2, 4, 6, 8];
 
 const app = document.querySelector<HTMLDivElement>('#app');
 
@@ -202,8 +204,20 @@ function setChallengeDigits(digits: ChallengeDigits): void {
 }
 
 function resetChallenge(): void {
-  setChallengeDigits(createRandomDigits());
+  setChallengeDigits(createSolvableChallenge());
   clearFormula();
+}
+
+function createSolvableChallenge(): ChallengeDigits {
+  for (let attempt = 0; attempt < RANDOM_CHALLENGE_MAX_ATTEMPTS; attempt += 1) {
+    const digits = createRandomDigits();
+
+    if (getAnyBasic24Solution(digits) !== null) {
+      return digits;
+    }
+  }
+
+  return FALLBACK_CHALLENGE;
 }
 
 form.addEventListener('submit', (event) => {
@@ -228,6 +242,6 @@ formulaInput.addEventListener('keydown', (event) => {
   validateCurrentFormula();
 });
 
-setChallengeDigits(createRandomDigits());
+setChallengeDigits(createSolvableChallenge());
 renderResult('idle', 'Enter a formula and validate it against the current digits.');
 renderSteps([]);

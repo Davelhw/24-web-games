@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { explainBasic24Formula, validateBasic24Formula } from '../src/basic24.js';
+import {
+  explainBasic24Formula,
+  getAnyBasic24Solution,
+  validateBasic24Formula,
+} from '../src/basic24.js';
 
 describe('validateBasic24Formula', () => {
   it('accepts a valid formula that equals 24', () => {
@@ -219,5 +223,41 @@ it('keeps validation result shape unchanged', () => {
     value: 24,
     usedDigits: [8, 6, 4, 2],
     error: null,
+  });
+});
+
+describe('getAnyBasic24Solution', () => {
+  it('finds a solution for a solvable digit set', () => {
+    const formula = getAnyBasic24Solution([6, 1, 3, 4]);
+
+    expect(formula).not.toBeNull();
+
+    if (formula === null) {
+      throw new Error('Expected a formula for [6, 1, 3, 4].');
+    }
+
+    expect(validateBasic24Formula({
+      digits: [6, 1, 3, 4],
+      formula,
+    }).ok).toBe(true);
+  });
+
+  it('finds a solution for a duplicate-digit solvable set', () => {
+    const formula = getAnyBasic24Solution([3, 3, 8, 8]);
+
+    expect(formula).not.toBeNull();
+
+    if (formula === null) {
+      throw new Error('Expected a formula for [3, 3, 8, 8].');
+    }
+
+    expect(validateBasic24Formula({
+      digits: [3, 3, 8, 8],
+      formula,
+    }).ok).toBe(true);
+  });
+
+  it('returns null for an unsolvable digit set', () => {
+    expect(getAnyBasic24Solution([1, 1, 1, 1])).toBeNull();
   });
 });

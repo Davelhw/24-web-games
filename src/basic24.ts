@@ -136,6 +136,19 @@ export function explainBasic24Formula(input: Basic24ValidationInput): Basic24Exp
   };
 }
 
+export function getAnyBasic24Solution(digits: readonly number[]): string | null {
+  if (validateDigits(digits) !== null) {
+    return null;
+  }
+
+  const items: SolverItem[] = digits.map((digit) => ({
+    value: digit,
+    expression: formatNumber(digit),
+  }));
+
+  return solveBasic24(items);
+}
+
 function validateDigits(digits: readonly number[]): string | null {
   if (digits.length !== 4) {
     return 'Exactly four digits are required.';
@@ -148,6 +161,78 @@ function validateDigits(digits: readonly number[]): string | null {
   }
 
   return null;
+}
+
+type SolverItem = {
+  value: number;
+  expression: string;
+};
+
+function solveBasic24(items: readonly SolverItem[]): string | null {
+  if (items.length === 1) {
+    return isNearlyEqual(items[0]?.value ?? Number.NaN, 24) ? (items[0]?.expression ?? null) : null;
+  }
+
+  for (let leftIndex = 0; leftIndex < items.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < items.length; rightIndex += 1) {
+      const left = items[leftIndex];
+      const right = items[rightIndex];
+
+      if (left === undefined || right === undefined) {
+        continue;
+      }
+
+      const remaining = items.filter((_, index) => index !== leftIndex && index !== rightIndex);
+      const candidates = combineSolverItems(left, right);
+
+      for (const candidate of candidates) {
+        const solution = solveBasic24([...remaining, candidate]);
+
+        if (solution !== null) {
+          return solution;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function combineSolverItems(left: SolverItem, right: SolverItem): SolverItem[] {
+  const results: SolverItem[] = [
+    {
+      value: left.value + right.value,
+      expression: `(${left.expression} + ${right.expression})`,
+    },
+    {
+      value: left.value - right.value,
+      expression: `(${left.expression} - ${right.expression})`,
+    },
+    {
+      value: right.value - left.value,
+      expression: `(${right.expression} - ${left.expression})`,
+    },
+    {
+      value: left.value * right.value,
+      expression: `(${left.expression} * ${right.expression})`,
+    },
+  ];
+
+  if (!isNearlyEqual(right.value, 0)) {
+    results.push({
+      value: left.value / right.value,
+      expression: `(${left.expression} / ${right.expression})`,
+    });
+  }
+
+  if (!isNearlyEqual(left.value, 0)) {
+    results.push({
+      value: right.value / left.value,
+      expression: `(${right.expression} / ${left.expression})`,
+    });
+  }
+
+  return results;
 }
 
 function tokenize(formula: string):
