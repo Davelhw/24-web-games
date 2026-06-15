@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx src/index.ts",
+    "dev": "vite",
+    "demo": "tsx src/index.ts",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit"
@@ -16,6 +19,7 @@
     "@types/node": "^25.9.3",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
+    "vite": "^8.0.16",
     "vitest": "^4.1.8"
   }
 }
