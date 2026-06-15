@@ -176,23 +176,37 @@ h2 {
   gap: 8px;
 }
 
-#mode-select {
-  width: min(240px, 100%);
-  min-height: 46px;
-  border-radius: 16px;
-  border: 1px solid rgba(31, 26, 20, 0.2);
-  padding: 0 14px;
-  font: inherit;
-  font-size: 1rem;
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.95);
-  outline: none;
-  appearance: none;
+.mode-switch {
+  display: inline-flex;
+  width: fit-content;
+  padding: 4px;
+  border-radius: 18px;
+  background: rgba(31, 78, 121, 0.08);
+  border: 1px solid rgba(31, 26, 20, 0.12);
+  gap: 4px;
 }
 
-#mode-select:focus {
-  border-color: rgba(31, 78, 121, 0.45);
-  box-shadow: 0 0 0 4px rgba(31, 78, 121, 0.12);
+.mode-switch-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 14px;
+  color: var(--primary-strong);
+  background: transparent;
+  box-shadow: none;
+}
+
+.mode-switch-button:hover {
+  transform: none;
+}
+
+.mode-switch-button--active {
+  color: #fff;
+  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-strong) 100%);
+  box-shadow: 0 10px 18px rgba(31, 78, 121, 0.18);
+}
+
+.mode-switch-button--active:hover {
+  transform: none;
 }
 
 .keypad {
@@ -585,12 +599,16 @@ button:focus-visible {
     width: 100%;
   }
 
-  #mode-select {
+  .mode-switch {
     width: 100%;
   }
 
   .keypad {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .mode-switch-button {
+    flex: 1 1 0;
   }
 
   .primary-button,

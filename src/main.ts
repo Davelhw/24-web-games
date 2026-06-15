@@ -82,11 +82,11 @@ app.innerHTML = `
         </p>
 
         <div class="mode-row">
-          <label class="formula-label" for="mode-select">Mode</label>
-          <select id="mode-select" data-mode>
-            <option value="basic">Basic</option>
-            <option value="advanced">Advanced</option>
-          </select>
+          <span class="formula-label">Mode</span>
+          <div class="mode-switch" role="group" aria-label="Mode">
+            <button class="mode-switch-button" type="button" data-mode-basic>Basic</button>
+            <button class="mode-switch-button" type="button" data-mode-advanced>Advanced</button>
+          </div>
         </div>
 
         <div class="keypad" data-keypad aria-label="Formula keypad"></div>
@@ -173,7 +173,8 @@ const digitsContainer = queryRequired<HTMLDivElement>(app, '[data-digits]');
 const form = queryRequired<HTMLFormElement>(app, '[data-form]');
 const formulaInput = queryRequired<HTMLInputElement>(app, '[data-formula]');
 const instructionsElement = queryRequired<HTMLUListElement>(app, '[data-instructions]');
-const modeSelect = queryRequired<HTMLSelectElement>(app, '[data-mode]');
+const modeBasicButton = queryRequired<HTMLButtonElement>(app, '[data-mode-basic]');
+const modeAdvancedButton = queryRequired<HTMLButtonElement>(app, '[data-mode-advanced]');
 const keypadElement = queryRequired<HTMLDivElement>(app, '[data-keypad]');
 const advancedSolutionNote = queryRequired<HTMLParagraphElement>(app, '[data-advanced-solution-note]');
 const resultElement = queryRequired<HTMLDivElement>(app, '[data-result]');
@@ -453,9 +454,12 @@ function updateNewChallengeButton(): void {
 }
 
 function updateModeUI(): void {
-  modeSelect.value = currentMode;
   renderInstructions(currentMode);
   renderKeypad(currentMode);
+  modeBasicButton.classList.toggle('mode-switch-button--active', currentMode === 'basic');
+  modeAdvancedButton.classList.toggle('mode-switch-button--active', currentMode === 'advanced');
+  modeBasicButton.setAttribute('aria-pressed', String(currentMode === 'basic'));
+  modeAdvancedButton.setAttribute('aria-pressed', String(currentMode === 'advanced'));
   updateShowSolutionButton();
 }
 
@@ -727,8 +731,12 @@ formulaInput.addEventListener('input', () => {
   handleFormulaInputChanged();
 });
 
-modeSelect.addEventListener('change', () => {
-  setMode(modeSelect.value === 'advanced' ? 'advanced' : 'basic');
+modeBasicButton.addEventListener('click', () => {
+  setMode('basic');
+});
+
+modeAdvancedButton.addEventListener('click', () => {
+  setMode('advanced');
 });
 
 updateModeUI();
