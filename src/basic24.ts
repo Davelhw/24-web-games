@@ -110,7 +110,7 @@ export function explainBasic24Formula(input: Basic24ValidationInput): Basic24Exp
     return failWithSteps(usedDigitValidationError, tokenResult.usedDigits);
   }
 
-  const parser = new FormulaParser(tokenResult.tokens);
+  const parser = new FormulaParser(insertImplicitMultiplicationTokens(tokenResult.tokens));
   const parseResult = parser.parse();
 
   if (!parseResult.ok) {
@@ -346,6 +346,44 @@ function validateUsedDigits(
   }
 
   return null;
+}
+
+function insertImplicitMultiplicationTokens(tokens: readonly Token[]): Token[] {
+  const result: Token[] = [];
+
+  for (const token of tokens) {
+    const previousToken = result.at(-1);
+
+    if (
+      previousToken !== undefined &&
+      requiresImplicitMultiplication(previousToken, token)
+    ) {
+      result.push({
+        type: 'operator',
+        value: '*',
+      });
+    }
+
+    result.push(token);
+  }
+
+  return result;
+}
+
+function requiresImplicitMultiplication(previousToken: Token, nextToken: Token): boolean {
+  if (previousToken.type === 'number' && nextToken.type === 'leftParen') {
+    return true;
+  }
+
+  if (previousToken.type === 'rightParen' && nextToken.type === 'number') {
+    return true;
+  }
+
+  if (previousToken.type === 'rightParen' && nextToken.type === 'leftParen') {
+    return true;
+  }
+
+  return false;
 }
 
 function countDigits(digits: readonly number[]): number[] {

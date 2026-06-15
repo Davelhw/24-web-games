@@ -29,6 +29,48 @@ describe('validateBasic24Formula', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('accepts implicit multiplication between a number and brackets', () => {
+    const result = validateBasic24Formula({
+      digits: [4, 4, 4, 4],
+      formula: '4(4)+4+4',
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      value: 24,
+      usedDigits: [4, 4, 4, 4],
+      error: null,
+    });
+  });
+
+  it('accepts implicit multiplication between brackets and a number', () => {
+    const result = validateBasic24Formula({
+      digits: [2, 3, 6, 6],
+      formula: '2(3+6)+6',
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      value: 24,
+      usedDigits: [2, 3, 6, 6],
+      error: null,
+    });
+  });
+
+  it('parses adjacent bracketed expressions as multiplication', () => {
+    const result = validateBasic24Formula({
+      digits: [1, 2, 3, 4],
+      formula: '(1+2)(3+4)',
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      value: null,
+      usedDigits: [1, 2, 3, 4],
+      error: 'Formula equals 21, not 24.',
+    });
+  });
+
   it('rejects formulas that do not equal 24', () => {
     const result = validateBasic24Formula({
       digits: [2, 4, 6, 8],
@@ -205,6 +247,34 @@ it('returns educational evaluation steps for a valid formula', () => {
       },
       {
         expression: '48 / 2 = 24',
+        value: 24,
+      },
+    ],
+    error: null,
+  });
+});
+
+it('returns educational evaluation steps for implicit multiplication', () => {
+  const result = explainBasic24Formula({
+    digits: [4, 4, 4, 4],
+    formula: '4(4)+4+4',
+  });
+
+  expect(result).toEqual({
+    ok: true,
+    value: 24,
+    usedDigits: [4, 4, 4, 4],
+    steps: [
+      {
+        expression: '4 * 4 = 16',
+        value: 16,
+      },
+      {
+        expression: '16 + 4 = 20',
+        value: 20,
+      },
+      {
+        expression: '20 + 4 = 24',
         value: 24,
       },
     ],
