@@ -3,6 +3,8 @@ export type Basic24ValidationInput = {
   formula: string;
 };
 
+export type Basic24Mode = 'basic' | 'advanced';
+
 export type Basic24ValidationResult =
   | {
       ok: true;
@@ -58,7 +60,7 @@ type Token =
     }
   | {
       type: 'operator';
-      value: '+' | '-' | '*' | '/';
+      value: '+' | '-' | '*' | '/' | '^' | '√';
     }
   | {
       type: 'leftParen';
@@ -74,6 +76,26 @@ const EPSILON = 1e-10;
 export function validateBasic24Formula(input: Basic24ValidationInput): Basic24ValidationResult {
   const result = explainBasic24Formula(input);
 
+  return toValidationResult(result);
+}
+
+export function validateAdvanced24Formula(input: Basic24ValidationInput): Basic24ValidationResult {
+  const result = explainAdvanced24Formula(input);
+
+  return toValidationResult(result);
+}
+
+export function explainBasic24Formula(input: Basic24ValidationInput): Basic24ExplanationResult {
+  return explainFormula(input, 'basic');
+}
+
+export function explainAdvanced24Formula(input: Basic24ValidationInput): Basic24ExplanationResult {
+  return explainFormula(input, 'advanced');
+}
+
+function toValidationResult(
+  result: Basic24ExplanationResult,
+): Basic24ValidationResult {
   if (!result.ok) {
     return {
       ok: false,
@@ -91,14 +113,14 @@ export function validateBasic24Formula(input: Basic24ValidationInput): Basic24Va
   };
 }
 
-export function explainBasic24Formula(input: Basic24ValidationInput): Basic24ExplanationResult {
+function explainFormula(input: Basic24ValidationInput, mode: Basic24Mode): Basic24ExplanationResult {
   const digitValidationError = validateDigits(input.digits);
 
   if (digitValidationError !== null) {
     return failWithSteps(digitValidationError);
   }
 
-  const tokenResult = tokenize(input.formula);
+  const tokenResult = tokenize(input.formula, mode);
 
   if (!tokenResult.ok) {
     return failWithSteps(tokenResult.error, tokenResult.usedDigits);
@@ -110,7 +132,7 @@ export function explainBasic24Formula(input: Basic24ValidationInput): Basic24Exp
     return failWithSteps(usedDigitValidationError, tokenResult.usedDigits);
   }
 
-  const parser = new FormulaParser(insertImplicitMultiplicationTokens(tokenResult.tokens));
+  const parser = new FormulaParser(insertImplicitMultiplicationTokens(tokenResult.tokens), mode);
   const parseResult = parser.parse();
 
   if (!parseResult.ok) {
@@ -235,7 +257,7 @@ function combineSolverItems(left: SolverItem, right: SolverItem): SolverItem[] {
   return results;
 }
 
-function tokenize(formula: string):
+function tokenize(formula: string, mode: Basic24Mode):
   | {
       ok: true;
       tokens: Token[];
@@ -276,7 +298,7 @@ function tokenize(formula: string):
       continue;
     }
 
-    if (isOperatorChar(char)) {
+    if (isOperatorChar(char) || (mode === 'advanced' && isAdvancedOperatorChar(char))) {
       tokens.push({
         type: 'operator',
         value: char,
@@ -309,7 +331,7 @@ function tokenize(formula: string):
     return {
       ok: false,
       usedDigits,
-      error: `Invalid character "${char}". Only digits, +, -, *, /, brackets, and spaces are allowed.`,
+      error: `Invalid character "${char}". Only digits, ${getAllowedOperatorsLabel(mode)}, brackets, and spaces are allowed.`,
     };
   }
 
@@ -386,6 +408,10 @@ function requiresImplicitMultiplication(previousToken: Token, nextToken: Token):
   return false;
 }
 
+function getAllowedOperatorsLabel(mode: Basic24Mode): string {
+  return mode === 'advanced' ? '+, -, *, /, ^, √' : '+, -, *, /';
+}
+
 function countDigits(digits: readonly number[]): number[] {
   const counts = Array.from({ length: 10 }, () => 0);
 
@@ -399,7 +425,10 @@ function countDigits(digits: readonly number[]): number[] {
 class FormulaParser {
   private currentIndex = 0;
 
-  public constructor(private readonly tokens: readonly Token[]) {}
+  public constructor(
+    private readonly tokens: readonly Token[],
+    private readonly mode: Basic24Mode,
+  ) {}
 
   public parse(): FormulaParseResult {
     const result = this.parseExpression();
@@ -463,7 +492,7 @@ class FormulaParser {
   }
 
   private parseTerm(): FormulaParseResult {
-    let left = this.parseFactor();
+    let left = this.parsePower();
 
     if (!left.ok) {
       return left;
@@ -480,7 +509,7 @@ class FormulaParser {
         };
       }
 
-      const right = this.parseFactor();
+      const right = this.parsePower();
 
       if (!right.ok) {
         return {
@@ -513,6 +542,70 @@ class FormulaParser {
       }
 
       const value: number = left.value / right.value;
+
+      const step = createEvaluationStep(left.display, operator.value, right.display, value);
+
+      left = {
+        ok: true,
+        value,
+        display: formatNumber(value),
+        steps: [...left.steps, ...right.steps, step],
+      };
+    }
+
+    return left;
+  }
+
+  private parsePower(): FormulaParseResult {
+    let left = this.parseFactor();
+
+    if (!left.ok) {
+      return left;
+    }
+
+    while (this.mode === 'advanced' && (this.matchOperator('^') || this.matchOperator('√'))) {
+      const operator = this.previous();
+
+      if (operator?.type !== 'operator') {
+        return {
+          ok: false,
+          steps: left.steps,
+          error: 'Invalid formula syntax.',
+        };
+      }
+
+      const right = this.parsePower();
+
+      if (!right.ok) {
+        return {
+          ...right,
+          steps: [...left.steps, ...right.steps],
+        };
+      }
+
+      let value: number;
+
+      if (operator.value === '^') {
+        value = left.value ** right.value;
+      } else {
+        if (left.value <= 0 || right.value < 0) {
+          return {
+            ok: false,
+            steps: [...left.steps, ...right.steps],
+            error: 'Invalid formula syntax.',
+          };
+        }
+
+        value = right.value ** (1 / left.value);
+      }
+
+      if (!Number.isFinite(value) || Number.isNaN(value)) {
+        return {
+          ok: false,
+          steps: [...left.steps, ...right.steps],
+          error: 'Invalid formula syntax.',
+        };
+      }
 
       const step = createEvaluationStep(left.display, operator.value, right.display, value);
 
@@ -577,7 +670,7 @@ class FormulaParser {
     };
   }
 
-  private matchOperator(operator: '+' | '-' | '*' | '/'): boolean {
+  private matchOperator(operator: '+' | '-' | '*' | '/' | '^' | '√'): boolean {
     const token = this.peek();
 
     if (token?.type !== 'operator' || token.value !== operator) {
@@ -614,7 +707,7 @@ class FormulaParser {
 
 function createEvaluationStep(
   left: string,
-  operator: '+' | '-' | '*' | '/',
+  operator: '+' | '-' | '*' | '/' | '^' | '√',
   right: string,
   value: number,
 ): Basic24EvaluationStep {
@@ -644,6 +737,10 @@ function isDigitChar(char: string): boolean {
 
 function isOperatorChar(char: string): char is '+' | '-' | '*' | '/' {
   return char === '+' || char === '-' || char === '*' || char === '/';
+}
+
+function isAdvancedOperatorChar(char: string): char is '^' | '√' {
+  return char === '^' || char === '√';
 }
 
 function isNearlyEqual(left: number, right: number): boolean {

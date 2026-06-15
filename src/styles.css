@@ -171,6 +171,46 @@ h2 {
   font-weight: 700;
 }
 
+.mode-row {
+  display: grid;
+  gap: 8px;
+}
+
+#mode-select {
+  width: min(240px, 100%);
+  min-height: 46px;
+  border-radius: 16px;
+  border: 1px solid rgba(31, 26, 20, 0.2);
+  padding: 0 14px;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.95);
+  outline: none;
+  appearance: none;
+}
+
+#mode-select:focus {
+  border-color: rgba(31, 78, 121, 0.45);
+  box-shadow: 0 0 0 4px rgba(31, 78, 121, 0.12);
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 10px;
+}
+
+.keypad-button {
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.advanced-note {
+  color: var(--primary-strong);
+  font-weight: 600;
+}
+
 .hint {
   margin-top: -2px;
   color: var(--muted);
@@ -348,6 +388,18 @@ button:focus-visible {
   font-weight: 700;
 }
 
+.history-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(31, 78, 121, 0.08);
+  color: var(--primary-strong);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .history-status--success {
   color: var(--success);
   background: rgba(13, 107, 61, 0.08);
@@ -424,6 +476,12 @@ button:focus-visible {
 .history-modal__status {
   line-height: 1.5;
   word-break: break-word;
+}
+
+.history-modal__mode {
+  color: var(--muted);
+  line-height: 1.45;
+  font-size: 0.92rem;
 }
 
 .history-modal__status {
@@ -521,6 +579,18 @@ button:focus-visible {
 
   .button-row {
     width: 100%;
+  }
+
+  .mode-row {
+    width: 100%;
+  }
+
+  #mode-select {
+    width: 100%;
+  }
+
+  .keypad {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .primary-button,

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  explainAdvanced24Formula,
   explainBasic24Formula,
   getAnyBasic24Solution,
+  validateAdvanced24Formula,
   validateBasic24Formula,
 } from '../src/basic24.js';
 
@@ -169,6 +171,20 @@ describe('validateBasic24Formula', () => {
     });
   });
 
+  it('rejects root character in basic mode', () => {
+    const result = validateBasic24Formula({
+      digits: [2, 4, 6, 8],
+      formula: '2√9*8',
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      value: null,
+      usedDigits: [2, 9, 8],
+      error: 'Invalid character "√". Only digits, +, -, *, /, brackets, and spaces are allowed.',
+    });
+  });
+
   it('rejects invalid syntax', () => {
     const result = validateBasic24Formula({
       digits: [2, 4, 6, 8],
@@ -293,6 +309,104 @@ it('keeps validation result shape unchanged', () => {
     value: 24,
     usedDigits: [8, 6, 4, 2],
     error: null,
+  });
+});
+
+describe('validateAdvancedBasic24Formula', () => {
+  it('accepts power in advanced mode', () => {
+    const result = validateAdvanced24Formula({
+      digits: [2, 3, 1, 3],
+      formula: '2^3*1*3',
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      value: 24,
+      usedDigits: [2, 3, 1, 3],
+      error: null,
+    });
+  });
+
+  it('accepts indexed root in advanced mode', () => {
+    const result = validateAdvanced24Formula({
+      digits: [9, 7, 9, 8],
+      formula: '(9-7)√9*8',
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      value: 24,
+      usedDigits: [9, 7, 9, 8],
+      error: null,
+    });
+  });
+
+  it('accepts a root expression chain in advanced mode', () => {
+    const result = validateAdvanced24Formula({
+      digits: [3, 8, 3, 4],
+      formula: '3√8*3*4',
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      value: 24,
+      usedDigits: [3, 8, 3, 4],
+      error: null,
+    });
+  });
+
+  it('rejects root without an index in advanced mode', () => {
+    const result = validateAdvanced24Formula({
+      digits: [9, 7, 9, 8],
+      formula: '√9*8*(9-7)',
+    });
+
+    expect(result.ok).toBe(false);
+  });
+
+  it('rejects power and root in basic mode even when advanced mode accepts them', () => {
+    const powerResult = validateBasic24Formula({
+      digits: [2, 3, 1, 3],
+      formula: '2^3*1*3',
+    });
+
+    const rootResult = validateBasic24Formula({
+      digits: [9, 7, 9, 8],
+      formula: '(9-7)√9*8',
+    });
+
+    expect(powerResult.ok).toBe(false);
+    expect(rootResult.ok).toBe(false);
+  });
+});
+
+describe('explainAdvanced24Formula', () => {
+  it('returns educational evaluation steps for advanced power and root operations', () => {
+    const result = explainAdvanced24Formula({
+      digits: [9, 7, 9, 8],
+      formula: '(9-7)√9*8',
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      value: 24,
+      usedDigits: [9, 7, 9, 8],
+      steps: [
+        {
+          expression: '9 - 7 = 2',
+          value: 2,
+        },
+        {
+          expression: '2 √ 9 = 3',
+          value: 3,
+        },
+        {
+          expression: '3 * 8 = 24',
+          value: 24,
+        },
+      ],
+      error: null,
+    });
   });
 });
 

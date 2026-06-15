@@ -1,3 +1,4 @@
+import type { Basic24Mode } from './basic24.js';
 import type { ChallengeDigits } from './basic24-ui.js';
 
 export type Basic24HistoryItem = {
@@ -9,6 +10,7 @@ export type Basic24HistoryItem = {
   value: number | null;
   error: string | null;
   repeatCount: number;
+  mode: Basic24Mode;
 };
 
 export type Basic24HistoryStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
@@ -37,6 +39,7 @@ export function addBasic24HistoryItem(
   const nextItem: Basic24HistoryItem = {
     ...item,
     repeatCount: 1,
+    mode: item.mode,
     id: createHistoryId(),
     createdAt: new Date().toISOString(),
   };
@@ -165,11 +168,12 @@ function normalizeHistoryItem(value: unknown): Basic24HistoryItem | null {
       candidate.repeatCount > 0
         ? candidate.repeatCount
         : 1,
+    mode: candidate.mode === 'advanced' ? 'advanced' : 'basic',
   };
 }
 
 function isSameHistoryAttempt(a: Basic24HistoryItem, b: Basic24HistoryItem): boolean {
-  return a.formula === b.formula && a.digits.join(',') === b.digits.join(',');
+  return a.formula === b.formula && a.digits.join(',') === b.digits.join(',') && a.mode === b.mode;
 }
 
 function isChallengeDigits(value: unknown): value is ChallengeDigits {

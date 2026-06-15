@@ -1,4 +1,9 @@
-import { explainBasic24Formula, getAnyBasic24Solution } from './basic24.js';
+import {
+  explainAdvanced24Formula,
+  explainBasic24Formula,
+  getAnyBasic24Solution,
+  type Basic24Mode,
+} from './basic24.js';
 import {
   addBasic24HistoryItem,
   clearBasic24History,
@@ -36,14 +41,7 @@ app.innerHTML = `
         </div>
       </div>
 
-      <ul class="instructions">
-        <li>Use all 4 digits exactly once.</li>
-        <li>Allowed operators: +, -, *, /</li>
-        <li>Brackets are allowed.</li>
-        <li>Target result is 24.</li>
-        <li>After 3 failed attempts, you can reveal one solution.</li>
-        <li>Solve the current challenge to unlock New Challenge.</li>
-      </ul>
+      <ul class="instructions" data-instructions></ul>
     </section>
 
     <section class="panel challenge-panel" aria-labelledby="challenge-title">
@@ -81,6 +79,20 @@ app.innerHTML = `
         />
         <p class="hint" id="formula-hint">
           Example: 8*6/(4/2). Spaces are optional.
+        </p>
+
+        <div class="mode-row">
+          <label class="formula-label" for="mode-select">Mode</label>
+          <select id="mode-select" data-mode>
+            <option value="basic">Basic</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </div>
+
+        <div class="keypad" data-keypad aria-label="Formula keypad"></div>
+
+        <p class="hint advanced-note" data-advanced-solution-note hidden>
+          Advanced solution reveal is not available yet.
         </p>
 
         <div class="button-row">
@@ -144,6 +156,7 @@ app.innerHTML = `
           <p class="history-modal__line" data-history-modal-digits></p>
           <p class="history-modal__line" data-history-modal-formula></p>
           <p class="history-modal__status" data-history-modal-status></p>
+          <p class="history-modal__mode" data-history-modal-mode></p>
           <p class="history-modal__line" data-history-modal-solution></p>
         </div>
 
@@ -159,6 +172,10 @@ app.innerHTML = `
 const digitsContainer = queryRequired<HTMLDivElement>(app, '[data-digits]');
 const form = queryRequired<HTMLFormElement>(app, '[data-form]');
 const formulaInput = queryRequired<HTMLInputElement>(app, '[data-formula]');
+const instructionsElement = queryRequired<HTMLUListElement>(app, '[data-instructions]');
+const modeSelect = queryRequired<HTMLSelectElement>(app, '[data-mode]');
+const keypadElement = queryRequired<HTMLDivElement>(app, '[data-keypad]');
+const advancedSolutionNote = queryRequired<HTMLParagraphElement>(app, '[data-advanced-solution-note]');
 const resultElement = queryRequired<HTMLDivElement>(app, '[data-result]');
 const solutionElement = queryRequired<HTMLDivElement>(app, '[data-solution]');
 const stepsElement = queryRequired<HTMLOListElement>(app, '[data-steps]');
@@ -168,6 +185,7 @@ const historyModalCloseButton = queryRequired<HTMLButtonElement>(app, '[data-his
 const historyModalDigits = queryRequired<HTMLParagraphElement>(app, '[data-history-modal-digits]');
 const historyModalFormula = queryRequired<HTMLParagraphElement>(app, '[data-history-modal-formula]');
 const historyModalStatus = queryRequired<HTMLParagraphElement>(app, '[data-history-modal-status]');
+const historyModalMode = queryRequired<HTMLParagraphElement>(app, '[data-history-modal-mode]');
 const historyModalSolution = queryRequired<HTMLParagraphElement>(app, '[data-history-modal-solution]');
 const historyModalSteps = queryRequired<HTMLOListElement>(app, '[data-history-modal-steps]');
 const newChallengeButton = queryRequired<HTMLButtonElement>(app, '[data-new-challenge]');
@@ -179,6 +197,7 @@ let challengeDigits: ChallengeDigits = [1, 2, 3, 4];
 let failedAttempts = 0;
 let historyItems: Basic24HistoryItem[] = getBasic24History();
 let currentChallengeSolved = false;
+let currentMode: Basic24Mode = 'basic';
 
 function queryRequired<T extends Element>(root: ParentNode, selector: string): T {
   const element = root.querySelector<T>(selector);
@@ -282,6 +301,11 @@ function renderHistory(items: readonly Basic24HistoryItem[]): void {
       statusWrap.append(repeatCount);
     }
 
+    const modeBadge = document.createElement('span');
+    modeBadge.className = 'history-mode-badge';
+    modeBadge.textContent = item.mode === 'advanced' ? 'Advanced' : 'Basic';
+    statusWrap.append(modeBadge);
+
     topLine.append(digits, statusWrap);
 
     const formula = document.createElement('p');
@@ -318,8 +342,76 @@ function renderHistory(items: readonly Basic24HistoryItem[]): void {
   }
 }
 
+function renderInstructions(mode: Basic24Mode): void {
+  instructionsElement.innerHTML = '';
+
+  const lines =
+    mode === 'advanced'
+      ? [
+          'Use all 4 digits exactly once.',
+          'Advanced operators: ^ and indexed √.',
+          '√ requires a root index. Example: (9-7)√9*8.',
+          'Brackets are allowed.',
+          'Target result is 24.',
+          'Solve the current challenge to unlock New Challenge.',
+        ]
+      : [
+          'Use all 4 digits exactly once.',
+          'Allowed operators: +, -, *, /',
+          'Brackets are allowed.',
+          'Target result is 24.',
+          'After 3 failed attempts, you can reveal one solution.',
+          'Solve the current challenge to unlock New Challenge.',
+        ];
+
+  for (const line of lines) {
+    const item = document.createElement('li');
+    item.textContent = line;
+    instructionsElement.appendChild(item);
+  }
+}
+
+function renderKeypad(mode: Basic24Mode): void {
+  keypadElement.innerHTML = '';
+
+  const symbols = mode === 'advanced' ? ['+', '-', '*', '/', '(', ')', '^', '√'] : ['+', '-', '*', '/', '(', ')'];
+
+  for (const symbol of symbols) {
+    const button = document.createElement('button');
+    button.className = 'ghost-button keypad-button';
+    button.type = 'button';
+    button.textContent = symbol;
+    button.setAttribute('aria-label', `Insert ${symbol}`);
+    button.addEventListener('click', () => {
+      insertSymbolAtCursor(symbol);
+    });
+    keypadElement.appendChild(button);
+  }
+}
+
 function updateUsedDigitState(): void {
   renderDigits(challengeDigits, getUsedDigitIndexes(challengeDigits, formulaInput.value));
+}
+
+function handleFormulaInputChanged(): void {
+  if (currentChallengeSolved) {
+    currentChallengeSolved = false;
+    updateNewChallengeButton();
+  }
+
+  updateUsedDigitState();
+}
+
+function insertSymbolAtCursor(symbol: string): void {
+  const start = formulaInput.selectionStart ?? formulaInput.value.length;
+  const end = formulaInput.selectionEnd ?? formulaInput.value.length;
+  const nextValue = `${formulaInput.value.slice(0, start)}${symbol}${formulaInput.value.slice(end)}`;
+  const nextCursor = start + symbol.length;
+
+  formulaInput.value = nextValue;
+  formulaInput.focus();
+  formulaInput.setSelectionRange(nextCursor, nextCursor);
+  handleFormulaInputChanged();
 }
 
 function hideSolutionReveal(): void {
@@ -333,7 +425,18 @@ function showSolutionReveal(message: string): void {
 }
 
 function updateShowSolutionButton(): void {
+  if (currentMode === 'advanced') {
+    showSolutionButton.textContent = 'Show Solution';
+    showSolutionButton.disabled = true;
+    showSolutionButton.title = 'Advanced solution reveal is not available yet.';
+    advancedSolutionNote.hidden = false;
+    return;
+  }
+
   const remainingAttempts = Math.max(FAILED_ATTEMPTS_TO_SHOW_SOLUTION - failedAttempts, 0);
+
+  showSolutionButton.title = '';
+  advancedSolutionNote.hidden = true;
 
   if (remainingAttempts > 0) {
     showSolutionButton.textContent = `Show Solution (${remainingAttempts})`;
@@ -347,6 +450,29 @@ function updateShowSolutionButton(): void {
 
 function updateNewChallengeButton(): void {
   newChallengeButton.disabled = !currentChallengeSolved;
+}
+
+function updateModeUI(): void {
+  modeSelect.value = currentMode;
+  renderInstructions(currentMode);
+  renderKeypad(currentMode);
+  updateShowSolutionButton();
+}
+
+function setMode(mode: Basic24Mode): void {
+  if (currentMode === mode) {
+    return;
+  }
+
+  currentMode = mode;
+  currentChallengeSolved = false;
+  failedAttempts = 0;
+  hideSolutionReveal();
+  renderResult('idle', 'Enter a formula and validate it against the current digits.');
+  renderSteps([]);
+  updateNewChallengeButton();
+  updateModeUI();
+  handleFormulaInputChanged();
 }
 
 function updateHistoryState(): void {
@@ -364,6 +490,7 @@ function saveHistoryAttempt(result: ReturnType<typeof explainBasic24Formula>, fo
     ok: result.ok,
     value: result.ok ? result.value : null,
     error: result.ok ? null : result.error,
+    mode: currentMode,
   });
 
   updateHistoryState();
@@ -397,8 +524,18 @@ function openHistorySolutionModal(item: Basic24HistoryItem): void {
   historyModalDigits.textContent = `Digits: ${item.digits.join(' ')}`;
   historyModalFormula.textContent = `Formula: ${item.formula}`;
   historyModalStatus.textContent = `Status: ${item.ok ? 'Correct' : 'Not quite'}`;
+  historyModalMode.textContent = `Mode: ${item.mode === 'advanced' ? 'Advanced' : 'Basic'}`;
   historyModalSolution.textContent = '';
   renderEvaluationSteps(historyModalSteps, []);
+
+  if (item.mode === 'advanced') {
+    historyModalSolution.textContent = 'Advanced solution reveal is not available yet.';
+    if (historyModal.open) {
+      historyModal.close();
+    }
+    historyModal.showModal();
+    return;
+  }
 
   const solution = getAnyBasic24Solution(item.digits);
 
@@ -425,6 +562,13 @@ function openHistorySolutionModal(item: Basic24HistoryItem): void {
 }
 
 function revealCurrentChallengeSolution(): void {
+  if (currentMode === 'advanced') {
+    showSolutionReveal('Advanced solution reveal is not available yet.');
+    renderResult('idle', 'Advanced solution reveal is not available yet.');
+    renderSteps([]);
+    return;
+  }
+
   const solution = getAnyBasic24Solution(challengeDigits);
 
   if (solution === null) {
@@ -452,10 +596,16 @@ function revealCurrentChallengeSolution(): void {
 
 function validateCurrentFormula(): void {
   const formula = formulaInput.value.trim();
-  const result = explainBasic24Formula({
-    digits: challengeDigits,
-    formula,
-  });
+  const result =
+    currentMode === 'advanced'
+      ? explainAdvanced24Formula({
+          digits: challengeDigits,
+          formula,
+        })
+      : explainBasic24Formula({
+          digits: challengeDigits,
+          formula,
+        });
 
   renderSteps(result.steps);
 
@@ -574,18 +724,17 @@ formulaInput.addEventListener('keydown', (event) => {
 });
 
 formulaInput.addEventListener('input', () => {
-  if (currentChallengeSolved) {
-    currentChallengeSolved = false;
-    updateNewChallengeButton();
-  }
-
-  updateUsedDigitState();
+  handleFormulaInputChanged();
 });
 
+modeSelect.addEventListener('change', () => {
+  setMode(modeSelect.value === 'advanced' ? 'advanced' : 'basic');
+});
+
+updateModeUI();
 setChallengeDigits(createSolvableChallenge());
 renderResult('idle', 'Enter a formula and validate it against the current digits.');
 renderSteps([]);
-updateShowSolutionButton();
 updateNewChallengeButton();
 hideSolutionReveal();
 updateHistoryState();
