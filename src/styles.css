@@ -150,6 +150,13 @@ h2 {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
+.digit-box--used {
+  opacity: 0.72;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: rgba(31, 26, 20, 0.55);
+}
+
 .formula-form {
   display: grid;
   gap: 12px;
@@ -227,6 +234,17 @@ button:focus-visible {
 .ghost-button {
   color: var(--primary-strong);
   background: rgba(31, 78, 121, 0.08);
+}
+
+.solution {
+  margin-bottom: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(31, 78, 121, 0.08);
+  border: 1px solid rgba(31, 78, 121, 0.12);
+  color: var(--primary-strong);
+  line-height: 1.5;
+  font-weight: 600;
 }
 
 .result {

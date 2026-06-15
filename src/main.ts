@@ -1,9 +1,10 @@
 import { explainBasic24Formula, getAnyBasic24Solution } from './basic24.js';
+import { getUsedDigitIndexes, type ChallengeDigits } from './basic24-ui.js';
 import './styles.css';
 
-type ChallengeDigits = readonly [number, number, number, number];
 const RANDOM_CHALLENGE_MAX_ATTEMPTS = 200;
 const FALLBACK_CHALLENGE: ChallengeDigits = [2, 4, 6, 8];
+const FAILED_ATTEMPTS_TO_SHOW_SOLUTION = 3;
 
 const app = document.querySelector<HTMLDivElement>('#app');
 
@@ -77,6 +78,7 @@ app.innerHTML = `
         <div class="button-row">
           <button class="primary-button" type="submit">Validate</button>
           <button class="ghost-button" type="button" data-clear>Clear</button>
+          <button class="ghost-button" type="button" data-show-solution hidden>Show Solution</button>
         </div>
       </form>
     </section>
@@ -89,6 +91,7 @@ app.innerHTML = `
         </div>
       </div>
 
+      <div class="solution" data-solution hidden></div>
       <div class="result result--idle" data-result aria-live="polite" role="status">
         Enter a formula and validate it against the current digits.
       </div>
@@ -111,11 +114,14 @@ const digitsContainer = queryRequired<HTMLDivElement>(app, '[data-digits]');
 const form = queryRequired<HTMLFormElement>(app, '[data-form]');
 const formulaInput = queryRequired<HTMLInputElement>(app, '[data-formula]');
 const resultElement = queryRequired<HTMLDivElement>(app, '[data-result]');
+const solutionElement = queryRequired<HTMLDivElement>(app, '[data-solution]');
 const stepsElement = queryRequired<HTMLOListElement>(app, '[data-steps]');
 const randomButton = queryRequired<HTMLButtonElement>(app, '[data-random]');
 const clearButton = queryRequired<HTMLButtonElement>(app, '[data-clear]');
+const showSolutionButton = queryRequired<HTMLButtonElement>(app, '[data-show-solution]');
 
 let challengeDigits: ChallengeDigits = [1, 2, 3, 4];
+let failedAttempts = 0;
 
 function queryRequired<T extends Element>(root: ParentNode, selector: string): T {
   const element = root.querySelector<T>(selector);
@@ -140,14 +146,16 @@ function randomDigit(): number {
   return Math.floor(Math.random() * 9) + 1;
 }
 
-function renderDigits(digits: ChallengeDigits): void {
+function renderDigits(digits: ChallengeDigits, usedIndexes: Set<number>): void {
   digitsContainer.innerHTML = '';
 
   digits.forEach((digit, index) => {
     const box = document.createElement('div');
-    box.className = 'digit-box';
+    const used = usedIndexes.has(index);
+
+    box.className = used ? 'digit-box digit-box--used' : 'digit-box';
     box.textContent = String(digit);
-    box.setAttribute('aria-label', `Digit ${index + 1}: ${digit}`);
+    box.setAttribute('aria-label', `Digit ${index + 1}: ${digit} ${used ? 'used' : 'unused'}`);
     digitsContainer.appendChild(box);
   });
 }
@@ -175,10 +183,29 @@ function renderSteps(steps: readonly { expression: string; value: number }[]): v
   }
 }
 
+function updateUsedDigitState(): void {
+  renderDigits(challengeDigits, getUsedDigitIndexes(challengeDigits, formulaInput.value));
+}
+
+function hideSolutionReveal(): void {
+  solutionElement.hidden = true;
+  solutionElement.textContent = '';
+}
+
+function showSolutionReveal(message: string): void {
+  solutionElement.hidden = false;
+  solutionElement.textContent = message;
+}
+
+function updateShowSolutionButton(): void {
+  showSolutionButton.hidden = failedAttempts < FAILED_ATTEMPTS_TO_SHOW_SOLUTION;
+}
+
 function validateCurrentFormula(): void {
+  const formula = formulaInput.value.trim();
   const result = explainBasic24Formula({
     digits: challengeDigits,
-    formula: formulaInput.value.trim(),
+    formula,
   });
 
   renderSteps(result.steps);
@@ -188,24 +215,59 @@ function validateCurrentFormula(): void {
     return;
   }
 
+  if (formula.length > 0) {
+    failedAttempts += 1;
+    updateShowSolutionButton();
+  }
+
   renderResult('error', `Not quite yet. ${result.error}`);
 }
 
 function clearFormula(): void {
   formulaInput.value = '';
+  failedAttempts = 0;
+  updateShowSolutionButton();
+  hideSolutionReveal();
   renderResult('idle', 'Enter a formula and validate it against the current digits.');
   renderSteps([]);
+  updateUsedDigitState();
   formulaInput.focus();
 }
 
 function setChallengeDigits(digits: ChallengeDigits): void {
   challengeDigits = digits;
-  renderDigits(challengeDigits);
+  updateUsedDigitState();
 }
 
 function resetChallenge(): void {
   setChallengeDigits(createSolvableChallenge());
   clearFormula();
+}
+
+function revealSolution(): void {
+  const solution = getAnyBasic24Solution(challengeDigits);
+
+  if (solution === null) {
+    showSolutionReveal('No solution is available for this challenge.');
+    renderResult('idle', 'No solution is available for this challenge.');
+    renderSteps([]);
+    return;
+  }
+
+  const explanation = explainBasic24Formula({
+    digits: challengeDigits,
+    formula: solution,
+  });
+
+  showSolutionReveal(`One solution: ${solution}`);
+  renderSteps(explanation.steps);
+
+  if (explanation.ok) {
+    renderResult('success', 'Solution revealed.');
+    return;
+  }
+
+  renderResult('error', `Solution lookup failed. ${explanation.error}`);
 }
 
 function createSolvableChallenge(): ChallengeDigits {
@@ -233,6 +295,10 @@ clearButton.addEventListener('click', () => {
   clearFormula();
 });
 
+showSolutionButton.addEventListener('click', () => {
+  revealSolution();
+});
+
 formulaInput.addEventListener('keydown', (event) => {
   if (event.key !== 'Enter') {
     return;
@@ -242,6 +308,12 @@ formulaInput.addEventListener('keydown', (event) => {
   validateCurrentFormula();
 });
 
+formulaInput.addEventListener('input', () => {
+  updateUsedDigitState();
+});
+
 setChallengeDigits(createSolvableChallenge());
 renderResult('idle', 'Enter a formula and validate it against the current digits.');
 renderSteps([]);
+updateShowSolutionButton();
+hideSolutionReveal();
