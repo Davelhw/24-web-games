@@ -129,6 +129,30 @@ app.innerHTML = `
 
       <div class="history-list" data-history-list></div>
     </section>
+
+    <dialog class="history-modal" data-history-modal aria-labelledby="history-modal-title" role="dialog" aria-modal="true">
+      <div class="history-modal__content">
+        <div class="panel-header history-modal__header">
+          <div>
+            <p class="panel-kicker">History</p>
+            <h2 id="history-modal-title">History solution</h2>
+          </div>
+          <button class="ghost-button" type="button" data-history-modal-close>Close</button>
+        </div>
+
+        <div class="history-modal__details">
+          <p class="history-modal__line" data-history-modal-digits></p>
+          <p class="history-modal__line" data-history-modal-formula></p>
+          <p class="history-modal__status" data-history-modal-status></p>
+          <p class="history-modal__line" data-history-modal-solution></p>
+        </div>
+
+        <div class="history-modal__steps">
+          <h3 class="history-modal__steps-title">Evaluation steps</h3>
+          <ol class="steps" data-history-modal-steps></ol>
+        </div>
+      </div>
+    </dialog>
   </main>
 `;
 
@@ -139,6 +163,13 @@ const resultElement = queryRequired<HTMLDivElement>(app, '[data-result]');
 const solutionElement = queryRequired<HTMLDivElement>(app, '[data-solution]');
 const stepsElement = queryRequired<HTMLOListElement>(app, '[data-steps]');
 const historyListElement = queryRequired<HTMLDivElement>(app, '[data-history-list]');
+const historyModal = queryRequired<HTMLDialogElement>(app, '[data-history-modal]');
+const historyModalCloseButton = queryRequired<HTMLButtonElement>(app, '[data-history-modal-close]');
+const historyModalDigits = queryRequired<HTMLParagraphElement>(app, '[data-history-modal-digits]');
+const historyModalFormula = queryRequired<HTMLParagraphElement>(app, '[data-history-modal-formula]');
+const historyModalStatus = queryRequired<HTMLParagraphElement>(app, '[data-history-modal-status]');
+const historyModalSolution = queryRequired<HTMLParagraphElement>(app, '[data-history-modal-solution]');
+const historyModalSteps = queryRequired<HTMLOListElement>(app, '[data-history-modal-steps]');
 const newChallengeButton = queryRequired<HTMLButtonElement>(app, '[data-new-challenge]');
 const clearButton = queryRequired<HTMLButtonElement>(app, '[data-clear]');
 const clearHistoryButton = queryRequired<HTMLButtonElement>(app, '[data-clear-history]');
@@ -266,7 +297,7 @@ function renderHistory(items: readonly Basic24HistoryItem[]): void {
     viewSolutionButton.type = 'button';
     viewSolutionButton.textContent = 'View Solution';
     viewSolutionButton.addEventListener('click', () => {
-      revealSolutionForDigits(item.digits, 'Showing one solution from history.');
+      openHistorySolutionModal(item);
     });
 
     actions.append(viewSolutionButton);
@@ -326,19 +357,73 @@ function saveHistoryAttempt(result: ReturnType<typeof explainBasic24Formula>, fo
   updateHistoryState();
 }
 
-function revealSolutionForDigits(digits: ChallengeDigits, statusMessage: string): void {
-  const solution = getAnyBasic24Solution(digits);
+function renderEvaluationSteps(target: HTMLOListElement, steps: readonly { expression: string; value: number }[]): void {
+  target.innerHTML = '';
+
+  if (steps.length === 0) {
+    const item = document.createElement('li');
+    item.className = 'steps-empty';
+    item.textContent = 'No evaluation steps to show yet.';
+    target.appendChild(item);
+    return;
+  }
+
+  for (const step of steps) {
+    const item = document.createElement('li');
+    item.textContent = step.expression;
+    target.appendChild(item);
+  }
+}
+
+function closeHistorySolutionModal(): void {
+  if (historyModal.open) {
+    historyModal.close();
+  }
+}
+
+function openHistorySolutionModal(item: Basic24HistoryItem): void {
+  historyModalDigits.textContent = `Digits: ${item.digits.join(' ')}`;
+  historyModalFormula.textContent = `Formula: ${item.formula}`;
+  historyModalStatus.textContent = `Status: ${item.ok ? 'Correct' : 'Not quite'}`;
+  historyModalSolution.textContent = '';
+  renderEvaluationSteps(historyModalSteps, []);
+
+  const solution = getAnyBasic24Solution(item.digits);
 
   if (solution === null) {
-    showSolutionReveal('No solution is available for this history item.');
-    renderResult('idle', 'No solution is available for this history item.');
-    renderSteps([]);
-    updateNewChallengeButton();
+    historyModalSolution.textContent = 'No solution is available for this history item.';
+    if (historyModal.open) {
+      historyModal.close();
+    }
+    historyModal.showModal();
     return;
   }
 
   const explanation = explainBasic24Formula({
-    digits,
+    digits: item.digits,
+    formula: solution,
+  });
+
+  historyModalSolution.textContent = `One solution: ${solution}`;
+  renderEvaluationSteps(historyModalSteps, explanation.steps);
+  if (historyModal.open) {
+    historyModal.close();
+  }
+  historyModal.showModal();
+}
+
+function revealCurrentChallengeSolution(): void {
+  const solution = getAnyBasic24Solution(challengeDigits);
+
+  if (solution === null) {
+    showSolutionReveal('No solution is available for this challenge.');
+    renderResult('idle', 'No solution is available for this challenge.');
+    renderSteps([]);
+    return;
+  }
+
+  const explanation = explainBasic24Formula({
+    digits: challengeDigits,
     formula: solution,
   });
 
@@ -346,13 +431,11 @@ function revealSolutionForDigits(digits: ChallengeDigits, statusMessage: string)
   renderSteps(explanation.steps);
 
   if (explanation.ok) {
-    renderResult('success', statusMessage);
-    updateNewChallengeButton();
+    renderResult('success', 'Solution revealed.');
     return;
   }
 
   renderResult('error', `Solution lookup failed. ${explanation.error}`);
-  updateNewChallengeButton();
 }
 
 function validateCurrentFormula(): void {
@@ -407,7 +490,7 @@ function setChallengeDigits(digits: ChallengeDigits): void {
 }
 
 function revealSolution(): void {
-  revealSolutionForDigits(challengeDigits, 'Solution revealed.');
+  revealCurrentChallengeSolution();
 }
 
 function startNewChallenge(): void {
@@ -452,6 +535,21 @@ clearHistoryButton.addEventListener('click', () => {
 
 showSolutionButton.addEventListener('click', () => {
   revealSolution();
+});
+
+historyModalCloseButton.addEventListener('click', () => {
+  closeHistorySolutionModal();
+});
+
+historyModal.addEventListener('click', (event) => {
+  if (event.target === historyModal) {
+    closeHistorySolutionModal();
+  }
+});
+
+historyModal.addEventListener('cancel', (event) => {
+  event.preventDefault();
+  closeHistorySolutionModal();
 });
 
 formulaInput.addEventListener('keydown', (event) => {
