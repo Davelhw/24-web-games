@@ -15,9 +15,24 @@ app.innerHTML = `
       <p class="eyebrow">Basic 24 game</p>
       <h1>24 Game</h1>
       <p class="lead">
-        Use the four digits exactly once with <strong>+</strong>, <strong>-</strong>,
-        <strong>*</strong>, <strong>/</strong>, and brackets to make 24.
+        Use all four digits exactly once with arithmetic and brackets to make 24.
       </p>
+    </section>
+
+    <section class="panel" aria-labelledby="instructions-title">
+      <div class="panel-header">
+        <div>
+          <p class="panel-kicker">How to play</p>
+          <h2 id="instructions-title">Instructions</h2>
+        </div>
+      </div>
+
+      <ul class="instructions">
+        <li>Use all 4 digits exactly once.</li>
+        <li>Allowed operators: +, -, *, /</li>
+        <li>Brackets are allowed.</li>
+        <li>Target result is 24.</li>
+      </ul>
     </section>
 
     <section class="panel challenge-panel" aria-labelledby="challenge-title">
@@ -50,8 +65,12 @@ app.innerHTML = `
           autocomplete="off"
           spellcheck="false"
           placeholder="8*6/(4/2)"
+          aria-describedby="formula-hint"
           data-formula
         />
+        <p class="hint" id="formula-hint">
+          Example: 8*6/(4/2). Spaces are optional.
+        </p>
 
         <div class="button-row">
           <button class="primary-button" type="submit">Validate</button>
@@ -68,9 +87,9 @@ app.innerHTML = `
         </div>
       </div>
 
-      <p class="result result--idle" data-result>
+      <div class="result result--idle" data-result aria-live="polite" role="status">
         Enter a formula and validate it against the current digits.
-      </p>
+      </div>
     </section>
 
     <section class="panel" aria-labelledby="steps-title">
@@ -89,7 +108,7 @@ app.innerHTML = `
 const digitsContainer = queryRequired<HTMLDivElement>(app, '[data-digits]');
 const form = queryRequired<HTMLFormElement>(app, '[data-form]');
 const formulaInput = queryRequired<HTMLInputElement>(app, '[data-formula]');
-const resultElement = queryRequired<HTMLParagraphElement>(app, '[data-result]');
+const resultElement = queryRequired<HTMLDivElement>(app, '[data-result]');
 const stepsElement = queryRequired<HTMLOListElement>(app, '[data-steps]');
 const randomButton = queryRequired<HTMLButtonElement>(app, '[data-random]');
 const clearButton = queryRequired<HTMLButtonElement>(app, '[data-clear]');
@@ -155,20 +174,19 @@ function renderSteps(steps: readonly { expression: string; value: number }[]): v
 }
 
 function validateCurrentFormula(): void {
-  const formula = formulaInput.value.trim();
   const result = explainBasic24Formula({
     digits: challengeDigits,
-    formula,
+    formula: formulaInput.value.trim(),
   });
 
   renderSteps(result.steps);
 
   if (result.ok) {
-    renderResult('success', `Correct. ${formula} makes 24 with these digits.`);
+    renderResult('success', 'Correct! This makes 24.');
     return;
   }
 
-  renderResult('error', result.error);
+  renderResult('error', `Not quite yet. ${result.error}`);
 }
 
 function clearFormula(): void {
@@ -201,7 +219,15 @@ clearButton.addEventListener('click', () => {
   clearFormula();
 });
 
+formulaInput.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') {
+    return;
+  }
+
+  event.preventDefault();
+  validateCurrentFormula();
+});
+
 setChallengeDigits(createRandomDigits());
 renderResult('idle', 'Enter a formula and validate it against the current digits.');
 renderSteps([]);
-

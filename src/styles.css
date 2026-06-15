@@ -1,16 +1,15 @@
 :root {
   color-scheme: light;
-  --bg: #f5f0e8;
-  --bg-accent: #efe0bf;
-  --panel: rgba(255, 255, 255, 0.82);
-  --panel-border: rgba(47, 31, 15, 0.14);
+  --bg: #f6f1e8;
+  --panel: rgba(255, 255, 255, 0.88);
+  --panel-border: rgba(47, 31, 15, 0.12);
   --text: #1f1a14;
-  --muted: #6d6155;
+  --muted: #6a5e52;
   --primary: #1f4e79;
-  --primary-strong: #163a5a;
+  --primary-strong: #173a5a;
   --success: #0d6b3d;
   --error: #8f2a1a;
-  --shadow: 0 24px 70px rgba(51, 33, 11, 0.14);
+  --shadow: 0 24px 68px rgba(51, 33, 11, 0.14);
   --radius: 24px;
 }
 
@@ -28,8 +27,8 @@ body {
   font-family: "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif;
   color: var(--text);
   background:
-    radial-gradient(circle at top left, rgba(214, 169, 84, 0.28), transparent 34%),
-    radial-gradient(circle at right top, rgba(31, 78, 121, 0.18), transparent 28%),
+    radial-gradient(circle at top left, rgba(214, 169, 84, 0.24), transparent 34%),
+    radial-gradient(circle at right top, rgba(31, 78, 121, 0.16), transparent 28%),
     linear-gradient(180deg, #fbf7f1 0%, var(--bg) 100%);
 }
 
@@ -50,7 +49,7 @@ body::before {
 }
 
 .shell {
-  width: min(960px, calc(100% - 32px));
+  width: min(900px, calc(100% - 32px));
   margin: 0 auto;
   padding: 40px 0 56px;
   display: grid;
@@ -58,7 +57,8 @@ body::before {
 }
 
 .hero {
-  padding: 12px 4px 8px;
+  padding: 8px 4px 6px;
+  text-align: center;
 }
 
 .eyebrow,
@@ -86,7 +86,9 @@ h1 {
 
 .lead {
   margin-top: 14px;
-  max-width: 58ch;
+  max-width: 60ch;
+  margin-left: auto;
+  margin-right: auto;
   font-size: 1.05rem;
   line-height: 1.6;
   color: var(--muted);
@@ -116,8 +118,17 @@ h2 {
 
 .challenge-panel {
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 247, 228, 0.8)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(255, 247, 228, 0.82)),
     var(--panel);
+}
+
+.instructions {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 10px;
+  color: var(--text);
+  line-height: 1.55;
 }
 
 .digit-grid {
@@ -148,6 +159,13 @@ h2 {
   font-weight: 700;
 }
 
+.hint {
+  margin-top: -2px;
+  color: var(--muted);
+  line-height: 1.45;
+  font-size: 0.95rem;
+}
+
 #formula-input {
   width: 100%;
   min-height: 54px;
@@ -174,6 +192,9 @@ h2 {
 }
 
 button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   font: inherit;
   font-weight: 700;
@@ -217,6 +238,7 @@ button:focus-visible {
   line-height: 1.5;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(31, 26, 20, 0.08);
+  font-weight: 600;
 }
 
 .result--idle {
@@ -254,9 +276,10 @@ button:focus-visible {
 
 @media (max-width: 640px) {
   .shell {
-    width: min(100% - 20px, 960px);
-    padding-top: 20px;
+    width: min(100% - 20px, 900px);
+    padding-top: 18px;
     padding-bottom: 28px;
+    gap: 14px;
   }
 
   .panel {
@@ -267,11 +290,30 @@ button:focus-visible {
     flex-direction: column;
   }
 
+  .hero {
+    text-align: left;
+  }
+
+  .lead {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
   .digit-grid {
     gap: 10px;
   }
 
   .digit-box {
     min-height: 76px;
+  }
+
+  .button-row {
+    width: 100%;
+  }
+
+  .primary-button,
+  .ghost-button {
+    width: 100%;
+    justify-content: center;
   }
 }
