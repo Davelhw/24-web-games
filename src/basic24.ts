@@ -171,6 +171,25 @@ export function getAnyBasic24Solution(digits: readonly number[]): string | null 
   return solveBasic24(items);
 }
 
+export function getAnyAdvanced24Solution(digits: readonly number[]): string | null {
+  if (validateDigits(digits) !== null) {
+    return null;
+  }
+
+  const basicSolution = getAnyBasic24Solution(digits);
+
+  if (basicSolution !== null) {
+    return basicSolution;
+  }
+
+  const items: SolverItem[] = digits.map((digit) => ({
+    value: digit,
+    expression: formatNumber(digit),
+  }));
+
+  return solveAdvanced24(items);
+}
+
 function validateDigits(digits: readonly number[]): string | null {
   if (digits.length !== 4) {
     return 'Exactly four digits are required.';
@@ -255,6 +274,126 @@ function combineSolverItems(left: SolverItem, right: SolverItem): SolverItem[] {
   }
 
   return results;
+}
+
+function solveAdvanced24(items: readonly SolverItem[]): string | null {
+  if (items.length === 1) {
+    return isNearlyEqual(items[0]?.value ?? Number.NaN, 24) ? (items[0]?.expression ?? null) : null;
+  }
+
+  for (let leftIndex = 0; leftIndex < items.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < items.length; rightIndex += 1) {
+      const left = items[leftIndex];
+      const right = items[rightIndex];
+
+      if (left === undefined || right === undefined) {
+        continue;
+      }
+
+      const remaining = items.filter((_, index) => index !== leftIndex && index !== rightIndex);
+      const candidates = combineAdvancedSolverItems(left, right);
+
+      for (const candidate of candidates) {
+        const solution = solveAdvanced24([...remaining, candidate]);
+
+        if (solution !== null) {
+          return solution;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function combineAdvancedSolverItems(left: SolverItem, right: SolverItem): SolverItem[] {
+  const results = combineSolverItems(left, right);
+
+  const powerCandidate = createPowerCandidate(left, right);
+
+  if (powerCandidate !== null) {
+    results.push(powerCandidate);
+  }
+
+  const reversePowerCandidate = createPowerCandidate(right, left);
+
+  if (reversePowerCandidate !== null) {
+    results.push(reversePowerCandidate);
+  }
+
+  const rootCandidate = createRootCandidate(left, right);
+
+  if (rootCandidate !== null) {
+    results.push(rootCandidate);
+  }
+
+  const reverseRootCandidate = createRootCandidate(right, left);
+
+  if (reverseRootCandidate !== null) {
+    results.push(reverseRootCandidate);
+  }
+
+  return results;
+}
+
+function createPowerCandidate(base: SolverItem, exponent: SolverItem): SolverItem | null {
+  const exponentValue = toSafeInteger(exponent.value, 6);
+
+  if (exponentValue === null) {
+    return null;
+  }
+
+  if (isNearlyEqual(base.value, 0) && exponentValue < 0) {
+    return null;
+  }
+
+  const value = base.value ** exponentValue;
+
+  if (!Number.isFinite(value) || Number.isNaN(value)) {
+    return null;
+  }
+
+  return {
+    value,
+    expression: `(${base.expression}^${exponent.expression})`,
+  };
+}
+
+function createRootCandidate(index: SolverItem, radicand: SolverItem): SolverItem | null {
+  const indexValue = toSafeInteger(index.value, 9, 1);
+
+  if (indexValue === null) {
+    return null;
+  }
+
+  if (radicand.value < 0) {
+    return null;
+  }
+
+  const value = radicand.value ** (1 / indexValue);
+
+  if (!Number.isFinite(value) || Number.isNaN(value)) {
+    return null;
+  }
+
+  return {
+    value,
+    expression: `(${index.expression}√${radicand.expression})`,
+  };
+}
+
+function toSafeInteger(value: number, maxAbs: number, minValue = -maxAbs): number | null {
+  const rounded = Math.round(value);
+
+  if (rounded < minValue || rounded > maxAbs) {
+    return null;
+  }
+
+  if (Math.abs(value - rounded) > EPSILON) {
+    return null;
+  }
+
+  return rounded;
 }
 
 function tokenize(formula: string, mode: Basic24Mode):

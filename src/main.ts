@@ -1,6 +1,7 @@
 import {
   explainAdvanced24Formula,
   explainBasic24Formula,
+  getAnyAdvanced24Solution,
   getAnyBasic24Solution,
   type Basic24Mode,
 } from './basic24.js';
@@ -91,10 +92,6 @@ app.innerHTML = `
 
         <div class="keypad" data-keypad aria-label="Formula keypad"></div>
 
-        <p class="hint advanced-note" data-advanced-solution-note hidden>
-          Advanced solution reveal is not available yet.
-        </p>
-
         <div class="button-row">
           <button class="primary-button" type="submit">Validate</button>
           <button class="ghost-button" type="button" data-clear>Clear</button>
@@ -176,7 +173,6 @@ const instructionsElement = queryRequired<HTMLUListElement>(app, '[data-instruct
 const modeBasicButton = queryRequired<HTMLButtonElement>(app, '[data-mode-basic]');
 const modeAdvancedButton = queryRequired<HTMLButtonElement>(app, '[data-mode-advanced]');
 const keypadElement = queryRequired<HTMLDivElement>(app, '[data-keypad]');
-const advancedSolutionNote = queryRequired<HTMLParagraphElement>(app, '[data-advanced-solution-note]');
 const resultElement = queryRequired<HTMLDivElement>(app, '[data-result]');
 const solutionElement = queryRequired<HTMLDivElement>(app, '[data-solution]');
 const stepsElement = queryRequired<HTMLOListElement>(app, '[data-steps]');
@@ -426,18 +422,9 @@ function showSolutionReveal(message: string): void {
 }
 
 function updateShowSolutionButton(): void {
-  if (currentMode === 'advanced') {
-    showSolutionButton.textContent = 'Show Solution';
-    showSolutionButton.disabled = true;
-    showSolutionButton.title = 'Advanced solution reveal is not available yet.';
-    advancedSolutionNote.hidden = false;
-    return;
-  }
-
   const remainingAttempts = Math.max(FAILED_ATTEMPTS_TO_SHOW_SOLUTION - failedAttempts, 0);
 
   showSolutionButton.title = '';
-  advancedSolutionNote.hidden = true;
 
   if (remainingAttempts > 0) {
     showSolutionButton.textContent = `Show Solution (${remainingAttempts})`;
@@ -500,6 +487,26 @@ function saveHistoryAttempt(result: ReturnType<typeof explainBasic24Formula>, fo
   updateHistoryState();
 }
 
+function explainFormulaForMode(
+  mode: Basic24Mode,
+  digits: ChallengeDigits,
+  formula: string,
+): ReturnType<typeof explainBasic24Formula> {
+  return mode === 'advanced'
+    ? explainAdvanced24Formula({
+        digits,
+        formula,
+      })
+    : explainBasic24Formula({
+        digits,
+        formula,
+      });
+}
+
+function getAnySolutionForMode(mode: Basic24Mode, digits: ChallengeDigits): string | null {
+  return mode === 'advanced' ? getAnyAdvanced24Solution(digits) : getAnyBasic24Solution(digits);
+}
+
 function renderEvaluationSteps(target: HTMLOListElement, steps: readonly { expression: string; value: number }[]): void {
   target.innerHTML = '';
 
@@ -532,16 +539,7 @@ function openHistorySolutionModal(item: Basic24HistoryItem): void {
   historyModalSolution.textContent = '';
   renderEvaluationSteps(historyModalSteps, []);
 
-  if (item.mode === 'advanced') {
-    historyModalSolution.textContent = 'Advanced solution reveal is not available yet.';
-    if (historyModal.open) {
-      historyModal.close();
-    }
-    historyModal.showModal();
-    return;
-  }
-
-  const solution = getAnyBasic24Solution(item.digits);
+  const solution = getAnySolutionForMode(item.mode, item.digits);
 
   if (solution === null) {
     historyModalSolution.textContent = 'No solution is available for this history item.';
@@ -552,10 +550,7 @@ function openHistorySolutionModal(item: Basic24HistoryItem): void {
     return;
   }
 
-  const explanation = explainBasic24Formula({
-    digits: item.digits,
-    formula: solution,
-  });
+  const explanation = explainFormulaForMode(item.mode, item.digits, solution);
 
   historyModalSolution.textContent = `One solution: ${solution}`;
   renderEvaluationSteps(historyModalSteps, explanation.steps);
@@ -566,14 +561,7 @@ function openHistorySolutionModal(item: Basic24HistoryItem): void {
 }
 
 function revealCurrentChallengeSolution(): void {
-  if (currentMode === 'advanced') {
-    showSolutionReveal('Advanced solution reveal is not available yet.');
-    renderResult('idle', 'Advanced solution reveal is not available yet.');
-    renderSteps([]);
-    return;
-  }
-
-  const solution = getAnyBasic24Solution(challengeDigits);
+  const solution = getAnySolutionForMode(currentMode, challengeDigits);
 
   if (solution === null) {
     showSolutionReveal('No solution is available for this challenge.');
@@ -582,10 +570,7 @@ function revealCurrentChallengeSolution(): void {
     return;
   }
 
-  const explanation = explainBasic24Formula({
-    digits: challengeDigits,
-    formula: solution,
-  });
+  const explanation = explainFormulaForMode(currentMode, challengeDigits, solution);
 
   showSolutionReveal(`One solution: ${solution}`);
   renderSteps(explanation.steps);
@@ -600,16 +585,7 @@ function revealCurrentChallengeSolution(): void {
 
 function validateCurrentFormula(): void {
   const formula = formulaInput.value.trim();
-  const result =
-    currentMode === 'advanced'
-      ? explainAdvanced24Formula({
-          digits: challengeDigits,
-          formula,
-        })
-      : explainBasic24Formula({
-          digits: challengeDigits,
-          formula,
-        });
+  const result = explainFormulaForMode(currentMode, challengeDigits, formula);
 
   renderSteps(result.steps);
 

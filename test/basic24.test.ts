@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   explainAdvanced24Formula,
   explainBasic24Formula,
+  getAnyAdvanced24Solution,
   getAnyBasic24Solution,
   validateAdvanced24Formula,
   validateBasic24Formula,
@@ -407,6 +408,63 @@ describe('explainAdvanced24Formula', () => {
       ],
       error: null,
     });
+  });
+});
+
+describe('getAnyAdvanced24Solution', () => {
+  it('finds an advanced-mode solution for [1, 2, 3, 3]', () => {
+    const formula = getAnyAdvanced24Solution([1, 2, 3, 3]);
+
+    expect(formula).not.toBeNull();
+
+    if (formula === null) {
+      throw new Error('Expected a formula for [1, 2, 3, 3].');
+    }
+
+    expect(validateAdvanced24Formula({
+      digits: [1, 2, 3, 3],
+      formula,
+    })).toEqual({
+      ok: true,
+      value: 24,
+      usedDigits: [1, 2, 3, 3],
+      error: null,
+    });
+  });
+
+  it('finds an advanced-mode solution for [9, 9, 7, 8]', () => {
+    const formula = getAnyAdvanced24Solution([9, 9, 7, 8]);
+
+    expect(formula).not.toBeNull();
+
+    if (formula === null) {
+      throw new Error('Expected a formula for [9, 9, 7, 8].');
+    }
+
+    expect(validateAdvanced24Formula({
+      digits: [9, 9, 7, 8],
+      formula,
+    })).toEqual({
+      ok: true,
+      value: 24,
+      usedDigits: [9, 9, 7, 8],
+      error: null,
+    });
+  });
+
+  it('prefers a basic solution when one exists', () => {
+    const formula = getAnyAdvanced24Solution([6, 1, 3, 4]);
+
+    expect(formula).not.toBeNull();
+
+    if (formula === null) {
+      throw new Error('Expected a formula for [6, 1, 3, 4].');
+    }
+
+    expect(validateBasic24Formula({
+      digits: [6, 1, 3, 4],
+      formula,
+    }).ok).toBe(true);
   });
 });
 
