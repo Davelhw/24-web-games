@@ -91,11 +91,6 @@ app.innerHTML = `
         </div>
 
         <div class="keypad-group">
-          <span class="formula-label">Digits</span>
-          <div class="digit-keypad keypad" data-digit-keypad aria-label="Challenge digit keypad"></div>
-        </div>
-
-        <div class="keypad-group">
           <span class="formula-label">Operators</span>
           <div class="operator-keypad keypad" data-operator-keypad aria-label="Formula keypad"></div>
         </div>
@@ -180,7 +175,6 @@ const formulaInput = queryRequired<HTMLInputElement>(app, '[data-formula]');
 const instructionsElement = queryRequired<HTMLUListElement>(app, '[data-instructions]');
 const modeBasicButton = queryRequired<HTMLButtonElement>(app, '[data-mode-basic]');
 const modeAdvancedButton = queryRequired<HTMLButtonElement>(app, '[data-mode-advanced]');
-const digitKeypadElement = queryRequired<HTMLDivElement>(app, '[data-digit-keypad]');
 const operatorKeypadElement = queryRequired<HTMLDivElement>(app, '[data-operator-keypad]');
 const resultElement = queryRequired<HTMLDivElement>(app, '[data-result]');
 const solutionElement = queryRequired<HTMLDivElement>(app, '[data-solution]');
@@ -260,12 +254,21 @@ function renderDigits(digits: ChallengeDigits, usedIndexes: Set<number>): void {
   digitsContainer.innerHTML = '';
 
   digits.forEach((digit, index) => {
-    const box = document.createElement('div');
     const used = usedIndexes.has(index);
+    const box = document.createElement('button');
 
     box.className = used ? 'digit-box digit-box--used' : 'digit-box';
+    box.type = 'button';
     box.textContent = String(digit);
-    box.setAttribute('aria-label', `Digit ${index + 1}: ${digit} ${used ? 'used' : 'unused'}`);
+    box.disabled = used;
+    box.setAttribute('aria-label', `Digit ${digit} ${used ? 'used' : 'unused'}${used ? '' : ', insert digit'}`);
+
+    if (!used) {
+      box.addEventListener('click', () => {
+        insertTextAtCursor(String(digit));
+      });
+    }
+
     digitsContainer.appendChild(box);
   });
 }
@@ -405,31 +408,6 @@ function renderInstructions(mode: Basic24Mode): void {
   }
 }
 
-function renderDigitKeypad(): void {
-  digitKeypadElement.innerHTML = '';
-
-  const usedIndexes = getUsedDigitIndexes(challengeDigits, formulaInput.value);
-
-  challengeDigits.forEach((digit, index) => {
-    const button = document.createElement('button');
-    const used = usedIndexes.has(index);
-
-    button.className = 'ghost-button keypad-button digit-keypad-button';
-    button.type = 'button';
-    button.textContent = String(digit);
-    button.setAttribute('aria-label', `Insert digit ${digit} ${used ? 'used' : 'unused'}`);
-    button.disabled = used;
-
-    if (!used) {
-      button.addEventListener('click', () => {
-        insertTextAtCursor(String(digit));
-      });
-    }
-
-    digitKeypadElement.appendChild(button);
-  });
-}
-
 function renderOperatorKeypad(mode: Basic24Mode): void {
   operatorKeypadElement.innerHTML = '';
 
@@ -466,7 +444,6 @@ function renderOperatorKeypad(mode: Basic24Mode): void {
 
 function updateFormulaInteractionState(): void {
   renderDigits(challengeDigits, getUsedDigitIndexes(challengeDigits, formulaInput.value));
-  renderDigitKeypad();
 }
 
 function handleFormulaInputChanged(): void {
