@@ -24,7 +24,7 @@ body {
 
 body {
   margin: 0;
-  font-family: "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif;
+  font-family: 'Trebuchet MS', 'Gill Sans', 'Segoe UI', sans-serif;
   color: var(--text);
   background:
     radial-gradient(circle at top left, rgba(214, 169, 84, 0.24), transparent 34%),
@@ -33,7 +33,7 @@ body {
 }
 
 body::before {
-  content: "";
+  content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -78,7 +78,7 @@ p {
 }
 
 h1 {
-  font-family: "Georgia", "Times New Roman", serif;
+  font-family: 'Georgia', 'Times New Roman', serif;
   font-size: clamp(2.8rem, 7vw, 4.8rem);
   line-height: 0.95;
   letter-spacing: -0.04em;
@@ -118,8 +118,7 @@ h2 {
 
 .challenge-panel {
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(255, 247, 228, 0.82)),
-    var(--panel);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(255, 247, 228, 0.82)), var(--panel);
 }
 
 .instructions {
@@ -144,17 +143,23 @@ h2 {
   background: linear-gradient(180deg, #fffdf9 0%, #f1e6d3 100%);
   display: grid;
   place-items: center;
-  font-family: "Georgia", "Times New Roman", serif;
+  font-family: 'Georgia', 'Times New Roman', serif;
   font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 700;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 .digit-box--used {
-  opacity: 0.82;
-  background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%);
-  border-color: #d1d5db;
-  filter: saturate(0.7);
+  background: linear-gradient(180deg, #393a3f 0%, #e6e9ee 100%);
+  border-color: #bfc5ce;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 0 0 999px rgba(80, 80, 80, 0.04);
+}
+
+.digit-box--used .digit-value {
+  color: #1f1a14;
+  text-decoration: none;
 }
 
 .formula-form {
@@ -184,7 +189,9 @@ h2 {
   color: var(--text);
   background: rgba(255, 255, 255, 0.95);
   outline: none;
-  transition: border-color 120ms ease, box-shadow 120ms ease;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
 }
 
 #formula-input:focus {
@@ -207,7 +214,10 @@ button {
   font-weight: 700;
   border-radius: 999px;
   cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    background-color 120ms ease;
 }
 
 button:hover {
