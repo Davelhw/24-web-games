@@ -42,6 +42,7 @@ app.innerHTML = `
         <li>Brackets are allowed.</li>
         <li>Target result is 24.</li>
         <li>After 3 failed attempts, you can reveal one solution.</li>
+        <li>Use New Challenge to get another solvable set.</li>
       </ul>
     </section>
 
@@ -51,7 +52,7 @@ app.innerHTML = `
           <p class="panel-kicker">Challenge</p>
           <h2 id="challenge-title">Current digits</h2>
         </div>
-        <button class="ghost-button" type="button" data-random>Random Challenge</button>
+        <button class="ghost-button" type="button" data-new-challenge>New Challenge</button>
       </div>
 
       <div class="digit-grid" data-digits aria-label="Current challenge digits"></div>
@@ -138,7 +139,7 @@ const resultElement = queryRequired<HTMLDivElement>(app, '[data-result]');
 const solutionElement = queryRequired<HTMLDivElement>(app, '[data-solution]');
 const stepsElement = queryRequired<HTMLOListElement>(app, '[data-steps]');
 const historyListElement = queryRequired<HTMLDivElement>(app, '[data-history-list]');
-const randomButton = queryRequired<HTMLButtonElement>(app, '[data-random]');
+const newChallengeButton = queryRequired<HTMLButtonElement>(app, '[data-new-challenge]');
 const clearButton = queryRequired<HTMLButtonElement>(app, '[data-clear]');
 const clearHistoryButton = queryRequired<HTMLButtonElement>(app, '[data-clear-history]');
 const showSolutionButton = queryRequired<HTMLButtonElement>(app, '[data-show-solution]');
@@ -146,6 +147,7 @@ const showSolutionButton = queryRequired<HTMLButtonElement>(app, '[data-show-sol
 let challengeDigits: ChallengeDigits = [1, 2, 3, 4];
 let failedAttempts = 0;
 let historyItems: Basic24HistoryItem[] = getBasic24History();
+let currentChallengeSolved = false;
 
 function queryRequired<T extends Element>(root: ParentNode, selector: string): T {
   const element = root.querySelector<T>(selector);
@@ -356,6 +358,7 @@ function validateCurrentFormula(): void {
   renderSteps(result.steps);
 
   if (result.ok) {
+    currentChallengeSolved = true;
     failedAttempts = 0;
     hideSolutionReveal();
     updateShowSolutionButton();
@@ -365,6 +368,7 @@ function validateCurrentFormula(): void {
   }
 
   if (formula.length > 0) {
+    currentChallengeSolved = false;
     failedAttempts += 1;
   }
 
@@ -376,6 +380,7 @@ function validateCurrentFormula(): void {
 function clearFormula(): void {
   formulaInput.value = '';
   failedAttempts = 0;
+  currentChallengeSolved = false;
   updateShowSolutionButton();
   hideSolutionReveal();
   renderResult('idle', 'Enter a formula and validate it against the current digits.');
@@ -386,16 +391,33 @@ function clearFormula(): void {
 
 function setChallengeDigits(digits: ChallengeDigits): void {
   challengeDigits = digits;
+  currentChallengeSolved = false;
   updateUsedDigitState();
-}
-
-function resetChallenge(): void {
-  setChallengeDigits(createSolvableChallenge());
-  clearFormula();
 }
 
 function revealSolution(): void {
   revealSolutionForDigits(challengeDigits, 'Solution revealed.');
+}
+
+function startNewChallenge(): void {
+  setChallengeDigits(createSolvableChallenge());
+  clearFormula();
+}
+
+function handleNewChallengeClick(): void {
+  const formula = formulaInput.value.trim();
+
+  if (formula.length > 0 && !currentChallengeSolved) {
+    const shouldStartNewChallenge = window.confirm(
+      'Start a new challenge? Your current attempt is not solved yet.',
+    );
+
+    if (!shouldStartNewChallenge) {
+      return;
+    }
+  }
+
+  startNewChallenge();
 }
 
 function createSolvableChallenge(): ChallengeDigits {
@@ -415,8 +437,8 @@ form.addEventListener('submit', (event) => {
   validateCurrentFormula();
 });
 
-randomButton.addEventListener('click', () => {
-  resetChallenge();
+newChallengeButton.addEventListener('click', () => {
+  handleNewChallengeClick();
 });
 
 clearButton.addEventListener('click', () => {
