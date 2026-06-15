@@ -266,11 +266,23 @@ function renderHistory(items: readonly Basic24HistoryItem[]): void {
     digits.textContent = item.digits.join(' ');
     digits.setAttribute('aria-label', `Digits: ${item.digits.join(' ')}`);
 
+    const statusWrap = document.createElement('div');
+    statusWrap.className = 'history-status-wrap';
+
     const status = document.createElement('span');
     status.className = item.ok ? 'history-status history-status--success' : 'history-status history-status--error';
     status.textContent = item.ok ? 'Correct' : 'Not quite';
 
-    topLine.append(digits, status);
+    statusWrap.append(status);
+
+    if (item.repeatCount > 1) {
+      const repeatCount = document.createElement('span');
+      repeatCount.className = 'history-repeat-count';
+      repeatCount.textContent = `×${item.repeatCount}`;
+      statusWrap.append(repeatCount);
+    }
+
+    topLine.append(digits, statusWrap);
 
     const formula = document.createElement('p');
     formula.className = 'history-formula';
@@ -352,6 +364,7 @@ function saveHistoryAttempt(result: ReturnType<typeof explainBasic24Formula>, fo
     ok: result.ok,
     value: result.ok ? result.value : null,
     error: result.ok ? null : result.error,
+    repeatCount: 1,
   });
 
   updateHistoryState();

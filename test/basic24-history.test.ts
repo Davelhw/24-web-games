@@ -43,6 +43,7 @@ describe('basic24 history storage', () => {
         ok: true,
         value: 24,
         error: null,
+        repeatCount: 1,
       },
       storage,
     );
@@ -54,6 +55,7 @@ describe('basic24 history storage', () => {
         ok: false,
         value: null,
         error: 'Formula equals 30, not 24.',
+        repeatCount: 1,
       },
       storage,
     );
@@ -61,6 +63,148 @@ describe('basic24 history storage', () => {
     expect(history).toHaveLength(2);
     expect(history[0]?.formula).toBe('2*(3+6)+6');
     expect(history[1]?.formula).toBe('2*(3+6)');
+  });
+
+  it('groups consecutive identical attempts into one record', () => {
+    const storage = createFakeStorage();
+
+    const firstHistory = addBasic24HistoryItem(
+      {
+        digits,
+        formula: '2*(3+6)',
+        ok: true,
+        value: 24,
+        error: null,
+        repeatCount: 1,
+      },
+      storage,
+    );
+
+    const secondHistory = addBasic24HistoryItem(
+      {
+        digits,
+        formula: '2*(3+6)',
+        ok: true,
+        value: 24,
+        error: null,
+        repeatCount: 1,
+      },
+      storage,
+    );
+
+    expect(firstHistory).toHaveLength(1);
+    expect(secondHistory).toHaveLength(1);
+    expect(secondHistory[0]?.repeatCount).toBe(2);
+  });
+
+  it('keeps separate records for the same formula with different digits', () => {
+    const storage = createFakeStorage();
+
+    addBasic24HistoryItem(
+      {
+        digits: [2, 3, 6, 6],
+        formula: '2*(3+6)',
+        ok: true,
+        value: 24,
+        error: null,
+        repeatCount: 1,
+      },
+      storage,
+    );
+
+    const history = addBasic24HistoryItem(
+      {
+        digits: [2, 4, 6, 6],
+        formula: '2*(3+6)',
+        ok: false,
+        value: null,
+        error: 'Formula must use every given digit exactly once.',
+        repeatCount: 1,
+      },
+      storage,
+    );
+
+    expect(history).toHaveLength(2);
+    expect(history[0]?.repeatCount).toBe(1);
+    expect(history[1]?.repeatCount).toBe(1);
+  });
+
+  it('keeps separate records for the same digits with different formulas', () => {
+    const storage = createFakeStorage();
+
+    addBasic24HistoryItem(
+      {
+        digits,
+        formula: '2*(3+6)',
+        ok: true,
+        value: 24,
+        error: null,
+        repeatCount: 1,
+      },
+      storage,
+    );
+
+    const history = addBasic24HistoryItem(
+      {
+        digits,
+        formula: '2*(3+6)+6',
+        ok: false,
+        value: null,
+        error: 'Formula equals 30, not 24.',
+        repeatCount: 1,
+      },
+      storage,
+    );
+
+    expect(history).toHaveLength(2);
+    expect(history[0]?.formula).toBe('2*(3+6)+6');
+    expect(history[1]?.formula).toBe('2*(3+6)');
+  });
+
+  it('does not merge repeats after an intervening different attempt', () => {
+    const storage = createFakeStorage();
+
+    addBasic24HistoryItem(
+      {
+        digits,
+        formula: '2*(3+6)',
+        ok: true,
+        value: 24,
+        error: null,
+        repeatCount: 1,
+      },
+      storage,
+    );
+
+    addBasic24HistoryItem(
+      {
+        digits,
+        formula: '2*(3+6)+6',
+        ok: false,
+        value: null,
+        error: 'Formula equals 30, not 24.',
+        repeatCount: 1,
+      },
+      storage,
+    );
+
+    const history = addBasic24HistoryItem(
+      {
+        digits,
+        formula: '2*(3+6)',
+        ok: true,
+        value: 24,
+        error: null,
+        repeatCount: 1,
+      },
+      storage,
+    );
+
+    expect(history).toHaveLength(3);
+    expect(history[0]?.formula).toBe('2*(3+6)');
+    expect(history[0]?.repeatCount).toBe(1);
+    expect(history[1]?.formula).toBe('2*(3+6)+6');
+    expect(history[2]?.formula).toBe('2*(3+6)');
   });
 
   it('caps history at 20 items', () => {
@@ -76,6 +220,7 @@ describe('basic24 history storage', () => {
           ok: index % 2 === 0,
           value: index % 2 === 0 ? 24 : null,
           error: index % 2 === 0 ? null : 'Not quite',
+          repeatCount: 1,
         },
         storage,
       );
@@ -92,6 +237,24 @@ describe('basic24 history storage', () => {
     expect(getBasic24History(storage)).toEqual([]);
   });
 
+  it('reads old stored items without repeatCount as a single attempt', () => {
+    const storage = createFakeStorage(
+      JSON.stringify([
+        {
+          id: 'old-1',
+          createdAt: '2024-01-01T00:00:00.000Z',
+          digits: [2, 3, 6, 6],
+          formula: '2*(3+6)',
+          ok: true,
+          value: 24,
+          error: null,
+        },
+      ]),
+    );
+
+    expect(getBasic24History(storage)[0]?.repeatCount).toBe(1);
+  });
+
   it('clears stored history', () => {
     const storage = createFakeStorage();
 
@@ -102,6 +265,7 @@ describe('basic24 history storage', () => {
         ok: true,
         value: 24,
         error: null,
+        repeatCount: 1,
       },
       storage,
     );

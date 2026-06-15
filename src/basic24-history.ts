@@ -8,6 +8,7 @@ export type Basic24HistoryItem = {
   ok: boolean;
   value: number | null;
   error: string | null;
+  repeatCount: number;
 };
 
 export type Basic24HistoryStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
@@ -33,12 +34,23 @@ export function addBasic24HistoryItem(
 ): Basic24HistoryItem[] {
   const nextItem: Basic24HistoryItem = {
     ...item,
+    repeatCount: 1,
     id: createHistoryId(),
     createdAt: new Date().toISOString(),
   };
 
   const currentHistory = storage === null ? [...fallbackHistory] : readHistory(storage);
-  const nextHistory = [nextItem, ...currentHistory].slice(0, MAX_HISTORY_ITEMS);
+  const nextHistory =
+    currentHistory.length > 0 && isSameHistoryAttempt(currentHistory[0] as Basic24HistoryItem, nextItem)
+      ? [
+          {
+            ...currentHistory[0],
+            repeatCount: currentHistory[0].repeatCount + 1,
+            createdAt: nextItem.createdAt,
+          },
+          ...currentHistory.slice(1),
+        ].slice(0, MAX_HISTORY_ITEMS)
+      : [nextItem, ...currentHistory].slice(0, MAX_HISTORY_ITEMS);
 
   if (storage === null) {
     fallbackHistory = nextHistory;
@@ -139,7 +151,17 @@ function normalizeHistoryItem(value: unknown): Basic24HistoryItem | null {
     ok: candidate.ok,
     value: candidate.value,
     error: candidate.error,
+    repeatCount:
+      typeof candidate.repeatCount === 'number' &&
+      Number.isInteger(candidate.repeatCount) &&
+      candidate.repeatCount > 0
+        ? candidate.repeatCount
+        : 1,
   };
+}
+
+function isSameHistoryAttempt(a: Basic24HistoryItem, b: Basic24HistoryItem): boolean {
+  return a.formula === b.formula && a.digits.join(',') === b.digits.join(',');
 }
 
 function isChallengeDigits(value: unknown): value is ChallengeDigits {
