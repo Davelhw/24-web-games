@@ -151,10 +151,10 @@ h2 {
 }
 
 .digit-box--used {
-  opacity: 0.72;
-  text-decoration: line-through;
-  text-decoration-thickness: 2px;
-  text-decoration-color: rgba(31, 26, 20, 0.55);
+  opacity: 0.82;
+  background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%);
+  border-color: #d1d5db;
+  filter: saturate(0.7);
 }
 
 .formula-form {
