@@ -1,4 +1,10 @@
 import { explainBasic24Formula, getAnyBasic24Solution } from './basic24.js';
+import {
+  addBasic24HistoryItem,
+  clearBasic24History,
+  getBasic24History,
+  type Basic24HistoryItem,
+} from './basic24-history.js';
 import { getUsedDigitIndexes, type ChallengeDigits } from './basic24-ui.js';
 import './styles.css';
 
@@ -108,6 +114,20 @@ app.innerHTML = `
 
       <ol class="steps" data-steps></ol>
     </section>
+
+    <section class="panel" aria-labelledby="history-title">
+      <div class="panel-header">
+        <div>
+          <p class="panel-kicker">History</p>
+          <h2 id="history-title">Previous attempts</h2>
+        </div>
+        <button class="ghost-button danger-ghost" type="button" data-clear-history>
+          Clear History
+        </button>
+      </div>
+
+      <div class="history-list" data-history-list></div>
+    </section>
   </main>
 `;
 
@@ -117,12 +137,15 @@ const formulaInput = queryRequired<HTMLInputElement>(app, '[data-formula]');
 const resultElement = queryRequired<HTMLDivElement>(app, '[data-result]');
 const solutionElement = queryRequired<HTMLDivElement>(app, '[data-solution]');
 const stepsElement = queryRequired<HTMLOListElement>(app, '[data-steps]');
+const historyListElement = queryRequired<HTMLDivElement>(app, '[data-history-list]');
 const randomButton = queryRequired<HTMLButtonElement>(app, '[data-random]');
 const clearButton = queryRequired<HTMLButtonElement>(app, '[data-clear]');
+const clearHistoryButton = queryRequired<HTMLButtonElement>(app, '[data-clear-history]');
 const showSolutionButton = queryRequired<HTMLButtonElement>(app, '[data-show-solution]');
 
 let challengeDigits: ChallengeDigits = [1, 2, 3, 4];
 let failedAttempts = 0;
+let historyItems: Basic24HistoryItem[] = getBasic24History();
 
 function queryRequired<T extends Element>(root: ParentNode, selector: string): T {
   const element = root.querySelector<T>(selector);
@@ -184,6 +207,72 @@ function renderSteps(steps: readonly { expression: string; value: number }[]): v
   }
 }
 
+function renderHistory(items: readonly Basic24HistoryItem[]): void {
+  historyListElement.innerHTML = '';
+
+  if (items.length === 0) {
+    const emptyState = document.createElement('p');
+    emptyState.className = 'history-empty';
+    emptyState.textContent = 'No attempts yet.';
+    historyListElement.appendChild(emptyState);
+    return;
+  }
+
+  for (const item of items) {
+    const row = document.createElement('article');
+    row.className = 'history-item';
+
+    const details = document.createElement('div');
+    details.className = 'history-details';
+
+    const topLine = document.createElement('div');
+    topLine.className = 'history-topline';
+
+    const digits = document.createElement('p');
+    digits.className = 'history-digits';
+    digits.textContent = item.digits.join(' ');
+    digits.setAttribute('aria-label', `Digits: ${item.digits.join(' ')}`);
+
+    const status = document.createElement('span');
+    status.className = item.ok ? 'history-status history-status--success' : 'history-status history-status--error';
+    status.textContent = item.ok ? 'Correct' : 'Not quite';
+
+    topLine.append(digits, status);
+
+    const formula = document.createElement('p');
+    formula.className = 'history-formula';
+    formula.textContent = item.formula;
+
+    const timestamp = document.createElement('p');
+    timestamp.className = 'history-time';
+    timestamp.textContent = new Date(item.createdAt).toLocaleString();
+
+    details.append(topLine, formula, timestamp);
+
+    if (!item.ok && item.error !== null) {
+      const error = document.createElement('p');
+      error.className = 'history-error';
+      error.textContent = item.error;
+      details.append(error);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'history-actions';
+
+    const viewSolutionButton = document.createElement('button');
+    viewSolutionButton.className = 'ghost-button history-action-button';
+    viewSolutionButton.type = 'button';
+    viewSolutionButton.textContent = 'View Solution';
+    viewSolutionButton.addEventListener('click', () => {
+      revealSolutionForDigits(item.digits, 'Showing one solution from history.');
+    });
+
+    actions.append(viewSolutionButton);
+    row.append(details, actions);
+    historyListElement.appendChild(row);
+  }
+}
+
 function updateUsedDigitState(): void {
   renderDigits(challengeDigits, getUsedDigitIndexes(challengeDigits, formulaInput.value));
 }
@@ -211,6 +300,52 @@ function updateShowSolutionButton(): void {
   showSolutionButton.disabled = false;
 }
 
+function updateHistoryState(): void {
+  renderHistory(historyItems);
+}
+
+function saveHistoryAttempt(result: ReturnType<typeof explainBasic24Formula>, formula: string): void {
+  if (formula.length === 0) {
+    return;
+  }
+
+  historyItems = addBasic24HistoryItem({
+    digits: challengeDigits,
+    formula,
+    ok: result.ok,
+    value: result.ok ? result.value : null,
+    error: result.ok ? null : result.error,
+  });
+
+  updateHistoryState();
+}
+
+function revealSolutionForDigits(digits: ChallengeDigits, statusMessage: string): void {
+  const solution = getAnyBasic24Solution(digits);
+
+  if (solution === null) {
+    showSolutionReveal('No solution is available for this history item.');
+    renderResult('idle', 'No solution is available for this history item.');
+    renderSteps([]);
+    return;
+  }
+
+  const explanation = explainBasic24Formula({
+    digits,
+    formula: solution,
+  });
+
+  showSolutionReveal(`One solution: ${solution}`);
+  renderSteps(explanation.steps);
+
+  if (explanation.ok) {
+    renderResult('success', statusMessage);
+    return;
+  }
+
+  renderResult('error', `Solution lookup failed. ${explanation.error}`);
+}
+
 function validateCurrentFormula(): void {
   const formula = formulaInput.value.trim();
   const result = explainBasic24Formula({
@@ -225,6 +360,7 @@ function validateCurrentFormula(): void {
     hideSolutionReveal();
     updateShowSolutionButton();
     renderResult('success', 'Correct! This makes 24.');
+    saveHistoryAttempt(result, formula);
     return;
   }
 
@@ -234,6 +370,7 @@ function validateCurrentFormula(): void {
 
   updateShowSolutionButton();
   renderResult('error', `Not quite yet. ${result.error}`);
+  saveHistoryAttempt(result, formula);
 }
 
 function clearFormula(): void {
@@ -258,29 +395,7 @@ function resetChallenge(): void {
 }
 
 function revealSolution(): void {
-  const solution = getAnyBasic24Solution(challengeDigits);
-
-  if (solution === null) {
-    showSolutionReveal('No solution is available for this challenge.');
-    renderResult('idle', 'No solution is available for this challenge.');
-    renderSteps([]);
-    return;
-  }
-
-  const explanation = explainBasic24Formula({
-    digits: challengeDigits,
-    formula: solution,
-  });
-
-  showSolutionReveal(`One solution: ${solution}`);
-  renderSteps(explanation.steps);
-
-  if (explanation.ok) {
-    renderResult('success', 'Solution revealed.');
-    return;
-  }
-
-  renderResult('error', `Solution lookup failed. ${explanation.error}`);
+  revealSolutionForDigits(challengeDigits, 'Solution revealed.');
 }
 
 function createSolvableChallenge(): ChallengeDigits {
@@ -308,6 +423,12 @@ clearButton.addEventListener('click', () => {
   clearFormula();
 });
 
+clearHistoryButton.addEventListener('click', () => {
+  clearBasic24History();
+  historyItems = [];
+  updateHistoryState();
+});
+
 showSolutionButton.addEventListener('click', () => {
   revealSolution();
 });
@@ -330,3 +451,4 @@ renderResult('idle', 'Enter a formula and validate it against the current digits
 renderSteps([]);
 updateShowSolutionButton();
 hideSolutionReveal();
+updateHistoryState();
