@@ -90,7 +90,15 @@ app.innerHTML = `
           </div>
         </div>
 
-        <div class="keypad" data-keypad aria-label="Formula keypad"></div>
+        <div class="keypad-group">
+          <span class="formula-label">Digits</span>
+          <div class="digit-keypad keypad" data-digit-keypad aria-label="Challenge digit keypad"></div>
+        </div>
+
+        <div class="keypad-group">
+          <span class="formula-label">Operators</span>
+          <div class="operator-keypad keypad" data-operator-keypad aria-label="Formula keypad"></div>
+        </div>
 
         <div class="button-row">
           <button class="primary-button" type="submit">Validate</button>
@@ -172,7 +180,8 @@ const formulaInput = queryRequired<HTMLInputElement>(app, '[data-formula]');
 const instructionsElement = queryRequired<HTMLUListElement>(app, '[data-instructions]');
 const modeBasicButton = queryRequired<HTMLButtonElement>(app, '[data-mode-basic]');
 const modeAdvancedButton = queryRequired<HTMLButtonElement>(app, '[data-mode-advanced]');
-const keypadElement = queryRequired<HTMLDivElement>(app, '[data-keypad]');
+const digitKeypadElement = queryRequired<HTMLDivElement>(app, '[data-digit-keypad]');
+const operatorKeypadElement = queryRequired<HTMLDivElement>(app, '[data-operator-keypad]');
 const resultElement = queryRequired<HTMLDivElement>(app, '[data-result]');
 const solutionElement = queryRequired<HTMLDivElement>(app, '[data-solution]');
 const stepsElement = queryRequired<HTMLOListElement>(app, '[data-steps]');
@@ -396,12 +405,37 @@ function renderInstructions(mode: Basic24Mode): void {
   }
 }
 
-function renderKeypad(mode: Basic24Mode): void {
-  keypadElement.innerHTML = '';
+function renderDigitKeypad(): void {
+  digitKeypadElement.innerHTML = '';
+
+  const usedIndexes = getUsedDigitIndexes(challengeDigits, formulaInput.value);
+
+  challengeDigits.forEach((digit, index) => {
+    const button = document.createElement('button');
+    const used = usedIndexes.has(index);
+
+    button.className = 'ghost-button keypad-button digit-keypad-button';
+    button.type = 'button';
+    button.textContent = String(digit);
+    button.setAttribute('aria-label', `Insert digit ${digit} ${used ? 'used' : 'unused'}`);
+    button.disabled = used;
+
+    if (!used) {
+      button.addEventListener('click', () => {
+        insertTextAtCursor(String(digit));
+      });
+    }
+
+    digitKeypadElement.appendChild(button);
+  });
+}
+
+function renderOperatorKeypad(mode: Basic24Mode): void {
+  operatorKeypadElement.innerHTML = '';
 
   for (const symbol of KEYPAD_OPERATORS) {
     const button = document.createElement('button');
-    button.className = 'ghost-button keypad-button';
+    button.className = 'ghost-button keypad-button operator-keypad-button';
     button.type = 'button';
     button.textContent = symbol;
     button.setAttribute('aria-label', `Insert ${symbol}`);
@@ -422,16 +456,17 @@ function renderKeypad(mode: Basic24Mode): void {
       button.disabled = true;
     } else {
       button.addEventListener('click', () => {
-        insertSymbolAtCursor(symbol);
+        insertTextAtCursor(symbol);
       });
     }
 
-    keypadElement.appendChild(button);
+    operatorKeypadElement.appendChild(button);
   }
 }
 
-function updateUsedDigitState(): void {
+function updateFormulaInteractionState(): void {
   renderDigits(challengeDigits, getUsedDigitIndexes(challengeDigits, formulaInput.value));
+  renderDigitKeypad();
 }
 
 function handleFormulaInputChanged(): void {
@@ -440,14 +475,14 @@ function handleFormulaInputChanged(): void {
     updateNewChallengeButton();
   }
 
-  updateUsedDigitState();
+  updateFormulaInteractionState();
 }
 
-function insertSymbolAtCursor(symbol: string): void {
+function insertTextAtCursor(text: string): void {
   const start = formulaInput.selectionStart ?? formulaInput.value.length;
   const end = formulaInput.selectionEnd ?? formulaInput.value.length;
-  const nextValue = `${formulaInput.value.slice(0, start)}${symbol}${formulaInput.value.slice(end)}`;
-  const nextCursor = start + symbol.length;
+  const nextValue = `${formulaInput.value.slice(0, start)}${text}${formulaInput.value.slice(end)}`;
+  const nextCursor = start + text.length;
 
   formulaInput.value = nextValue;
   formulaInput.focus();
@@ -486,7 +521,7 @@ function updateNewChallengeButton(): void {
 
 function updateModeUI(): void {
   renderInstructions(currentMode);
-  renderKeypad(currentMode);
+  renderOperatorKeypad(currentMode);
   modeBasicButton.classList.toggle('mode-switch-button--active', currentMode === 'basic');
   modeAdvancedButton.classList.toggle('mode-switch-button--active', currentMode === 'advanced');
   modeBasicButton.setAttribute('aria-pressed', String(currentMode === 'basic'));
@@ -508,7 +543,7 @@ function setMode(mode: Basic24Mode): void {
   renderSteps([]);
   updateNewChallengeButton();
   updateModeUI();
-  handleFormulaInputChanged();
+  updateFormulaInteractionState();
 }
 
 function updateHistoryState(): void {
@@ -665,14 +700,14 @@ function clearFormula(): void {
   hideSolutionReveal();
   renderResult('idle', 'Enter a formula and validate it against the current digits.');
   renderSteps([]);
-  updateUsedDigitState();
+  updateFormulaInteractionState();
   formulaInput.focus();
 }
 
 function setChallengeDigits(digits: ChallengeDigits): void {
   challengeDigits = digits;
   currentChallengeSolved = false;
-  updateUsedDigitState();
+  updateFormulaInteractionState();
   updateNewChallengeButton();
 }
 
@@ -766,4 +801,5 @@ renderResult('idle', 'Enter a formula and validate it against the current digits
 renderSteps([]);
 updateNewChallengeButton();
 hideSolutionReveal();
+updateFormulaInteractionState();
 updateHistoryState();

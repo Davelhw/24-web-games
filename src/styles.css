@@ -209,6 +209,11 @@ h2 {
   transform: none;
 }
 
+.keypad-group {
+  display: grid;
+  gap: 8px;
+}
+
 .keypad {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
@@ -218,6 +223,24 @@ h2 {
 .keypad-button {
   min-height: 42px;
   padding: 0 14px;
+}
+
+.digit-keypad {
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+}
+
+.digit-keypad-button {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 1.05rem;
+}
+
+button.digit-keypad-button:disabled,
+button.digit-keypad-button:disabled:hover {
+  opacity: 0.62;
+  color: var(--text);
+  background: rgba(31, 26, 20, 0.06);
+  box-shadow: none;
+  border: 1px solid rgba(31, 26, 20, 0.12);
 }
 
 .keypad-button:disabled,
@@ -607,7 +630,15 @@ button:focus-visible {
     width: 100%;
   }
 
+  .keypad-group {
+    width: 100%;
+  }
+
   .keypad {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .digit-keypad {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
