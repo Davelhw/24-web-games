@@ -36,7 +36,10 @@ This project is designed for static hosting.
 
 8. Verify HTTPS is enabled and the site loads correctly on the custom domain.
 
+9. Set `VITE_CLOUDFLARE_WEB_ANALYTICS_TOKEN` in the production environment to enable Cloudflare Web Analytics.
+
 ## Notes
 
 - Do not deploy source files directly; deploy the built `dist/` output.
+- The analytics beacon is not injected when `VITE_CLOUDFLARE_WEB_ANALYTICS_TOKEN` is missing.
 - No provider-specific configuration is included in this repository.
