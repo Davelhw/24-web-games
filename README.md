@@ -69,6 +69,19 @@ This repository is currently deployed at https://24game.davelhw.com.
 - The analytics beacon only loads when `VITE_CLOUDFLARE_WEB_ANALYTICS_TOKEN` is set.
 - If the env var is missing, no analytics script is injected.
 
+### Future gameplay analytics
+
+Gameplay event tracking is a future step only, after page-view analytics is confirmed working.
+
+Planned events:
+
+- `game_started`
+- `answer_submitted`
+- `answer_correct`
+- `answer_wrong`
+- `show_solution_clicked`
+- `new_challenge_clicked`
+
 ## Contributing
 
 Contributions are welcome.
