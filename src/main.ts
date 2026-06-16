@@ -17,6 +17,7 @@ import './styles.css';
 const RANDOM_CHALLENGE_MAX_ATTEMPTS = 200;
 const FALLBACK_CHALLENGE: ChallengeDigits = [2, 4, 6, 8];
 const FAILED_ATTEMPTS_TO_SHOW_SOLUTION = 3;
+const CLOUDFLARE_WEB_ANALYTICS_TOKEN = import.meta.env.VITE_CLOUDFLARE_WEB_ANALYTICS_TOKEN;
 
 const app = document.querySelector<HTMLDivElement>('#app');
 
@@ -169,6 +170,8 @@ app.innerHTML = `
   </main>
 `;
 
+injectCloudflareWebAnalytics(CLOUDFLARE_WEB_ANALYTICS_TOKEN);
+
 const digitsContainer = queryRequired<HTMLDivElement>(app, '[data-digits]');
 const form = queryRequired<HTMLFormElement>(app, '[data-form]');
 const formulaInput = queryRequired<HTMLInputElement>(app, '[data-formula]');
@@ -209,6 +212,26 @@ function queryRequired<T extends Element>(root: ParentNode, selector: string): T
   }
 
   return element;
+}
+
+function injectCloudflareWebAnalytics(token: string | undefined): void {
+  if (token === undefined || token.trim() === '') {
+    return;
+  }
+
+  if (document.querySelector('script[data-cf-beacon]') !== null) {
+    return;
+  }
+
+  const script = document.createElement('script');
+
+  script.async = true;
+  script.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  script.setAttribute('data-cf-beacon', JSON.stringify({ token }));
+
+  const parent = document.head ?? document.body;
+
+  parent.appendChild(script);
 }
 
 function createRandomDigits(): ChallengeDigits {
