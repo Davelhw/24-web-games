@@ -62,6 +62,13 @@ Vite builds the production site to `dist/`.
 
 This repository is currently deployed at https://24game.davelhw.com.
 
+## Analytics
+
+- Cloudflare HTTP Traffic is used for infrastructure-level visibility such as request volume, paths, status codes, cache behavior, and scanner traffic.
+- Cloudflare Web Analytics is used for real browser page-view tracking on https://24game.davelhw.com.
+- The analytics beacon only loads when `VITE_CLOUDFLARE_WEB_ANALYTICS_TOKEN` is set.
+- If the env var is missing, no analytics script is injected.
+
 ## Contributing
 
 Contributions are welcome.
